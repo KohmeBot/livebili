@@ -7,6 +7,8 @@ import (
 type Config struct {
 	// 订阅的uid
 	Uids []int64 `yaml:"uids" mapstructure:"uids"`
+	// 指定分群订阅uid
+	GroupUids map[int64][]int64 `yaml:"group_uids" mapstructure:"group_uids"`
 	// 字体文件路径
 	TTF string `yaml:"ttf" mapstructure:"ttf"`
 	// 检查直播间状态的间隔时间，单位为秒

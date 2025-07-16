@@ -36,12 +36,12 @@ type LiveResp struct {
 
 type RoomInfo struct {
 	Title         string `json:"title"`
-	RoomId        int    `json:"room_id"`
+	RoomId        int64  `json:"room_id"`
 	Uname         string `json:"uname"`
 	Face          string `json:"face"`
 	CoverFromUser string `json:"cover_from_user"`
 	LiveStatus    int    `json:"live_status"`
-	Uid           int    `json:"uid"`
+	Uid           int64  `json:"uid"`
 }
 
 func IsLiving(status int) bool {

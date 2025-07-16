@@ -11,6 +11,7 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"gorm.io/gorm"
 	"io"
+	"slices"
 	"time"
 )
 
@@ -22,8 +23,14 @@ func (b *biliPlugin) doCheckFollower() error {
 	errChan := make(chan error, len(uids))
 	defer close(errChan)
 	for _, uid := range uids {
+		var groups []int64
+		if _, ok := b.conf.GroupUids[uid]; ok {
+			groups = b.conf.GroupUids[uid]
+		} else {
+			groups = slices.Collect(b.groups.RangeGroup)
+		}
 		gopool.Go(func() {
-			errChan <- b.doCheckOneFollower(uid)
+			errChan <- b.doCheckOneFollower(uid, groups)
 		})
 	}
 	var err error
@@ -36,7 +43,7 @@ func (b *biliPlugin) doCheckFollower() error {
 	return err
 }
 
-func (b *biliPlugin) doCheckOneFollower(uid int64) error {
+func (b *biliPlugin) doCheckOneFollower(uid int64, groups []int64) error {
 	r, err := b.checkFollower(uid)
 	if err != nil {
 		return err
@@ -90,13 +97,13 @@ func (b *biliPlugin) doCheckOneFollower(uid int64) error {
 
 	switch mode {
 	case TimeReached:
-		return b.onTimeReached(r.Data.Follower, record, nickName, face)
+		return b.onTimeReached(r.Data.Follower, record, nickName, face, groups)
 	case FollowerChange:
-		return b.onFollowerChange(r.Data.Follower, record, nickName, face)
+		return b.onFollowerChange(r.Data.Follower, record, nickName, face, groups)
 	case SpecialNumber:
-		return b.onSpecialNumber(r.Data.Follower, record, nickName)
+		return b.onSpecialNumber(r.Data.Follower, record, nickName, groups)
 	case AroundSpecialNumber:
-		return b.onAroundSpecialNumber(r.Data.Follower, record, nickName)
+		return b.onAroundSpecialNumber(r.Data.Follower, record, nickName, groups)
 	default:
 		return fmt.Errorf("unknown mode %d", mode)
 	}
@@ -181,11 +188,11 @@ func (b *biliPlugin) followerNotifyMode(follower int, record *FollowerRecord) No
 	return NotNotify
 }
 
-func (b *biliPlugin) onTimeReached(follower int, record *FollowerRecord, nickName string, face string) error {
-	return b.onFollowerChange(follower, record, nickName, face)
+func (b *biliPlugin) onTimeReached(follower int, record *FollowerRecord, nickName string, face string, groups []int64) error {
+	return b.onFollowerChange(follower, record, nickName, face, groups)
 }
 
-func (b *biliPlugin) onFollowerChange(follower int, record *FollowerRecord, nickName string, face string) error {
+func (b *biliPlugin) onFollowerChange(follower int, record *FollowerRecord, nickName string, face string, groups []int64) error {
 	delta := follower - record.LastUpdateFollower
 	var factory canvas.ImageFactory
 	factory.Url(face)
@@ -215,14 +222,14 @@ func (b *biliPlugin) onFollowerChange(follower int, record *FollowerRecord, nick
 	)
 
 	for ctx := range b.env.RangeBot {
-		for gid := range b.groups.RangeGroup {
+		for _, gid := range groups {
 			ctx.SendGroupMessage(gid, msgChain)
 		}
 	}
 	return nil
 }
 
-func (b *biliPlugin) onSpecialNumber(follower int, record *FollowerRecord, nickName string) error {
+func (b *biliPlugin) onSpecialNumber(follower int, record *FollowerRecord, nickName string, groups []int64) error {
 	step := follower / specialNumStep
 	var tips string
 	if step == 1 {
@@ -237,7 +244,7 @@ func (b *biliPlugin) onSpecialNumber(follower int, record *FollowerRecord, nickN
 		message.Text(fmt.Sprintf("%d → %d", record.LastUpdateFollower, follower)),
 	)
 	for ctx := range b.env.RangeBot {
-		for gid := range b.groups.RangeGroup {
+		for _, gid := range groups {
 			ctx.SendGroupMessage(gid, msgChain)
 		}
 	}
@@ -245,7 +252,7 @@ func (b *biliPlugin) onSpecialNumber(follower int, record *FollowerRecord, nickN
 
 }
 
-func (b *biliPlugin) onAroundSpecialNumber(follower int, record *FollowerRecord, nickName string) error {
+func (b *biliPlugin) onAroundSpecialNumber(follower int, record *FollowerRecord, nickName string, groups []int64) error {
 	nextStep := (follower / specialNumStep) + 1
 	remain := (nextStep * specialNumStep) - follower
 	var tips string
@@ -261,7 +268,7 @@ func (b *biliPlugin) onAroundSpecialNumber(follower int, record *FollowerRecord,
 		message.Text(fmt.Sprintf("%d → %d", record.LastUpdateFollower, follower)),
 	)
 	for ctx := range b.env.RangeBot {
-		for gid := range b.groups.RangeGroup {
+		for _, gid := range groups {
 			ctx.SendGroupMessage(gid, msgChain)
 		}
 	}

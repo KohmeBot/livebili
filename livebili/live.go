@@ -8,6 +8,7 @@ import (
 	"github.com/kohmebot/livebili/request"
 	"github.com/kohmebot/pkg/chain"
 	"github.com/kohmebot/pkg/gopool"
+	"slices"
 	"time"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -22,7 +23,14 @@ func (b *biliPlugin) doCheckLive() error {
 		return err
 	}
 	for _, info := range live.Data {
-		err = b.sendRoomInfo(&info)
+		uid := info.Uid
+		var groups []int64
+		if _, ok := b.conf.GroupUids[uid]; ok {
+			groups = b.conf.GroupUids[uid]
+		} else {
+			groups = slices.Collect(b.groups.RangeGroup)
+		}
+		err = b.sendRoomInfo(&info, groups)
 		if err != nil {
 			return err
 		}
@@ -31,7 +39,7 @@ func (b *biliPlugin) doCheckLive() error {
 
 }
 
-func (b *biliPlugin) sendRoomInfo(info *RoomInfo) error {
+func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 	db, err := b.env.GetDB()
 	if err != nil {
 		return err
@@ -106,12 +114,11 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo) error {
 				// 免打扰状态下去除at全员
 				DeleteAtAll(&msgChain)
 			}
-			b.groups.RangeGroup(func(group int64) bool {
+			for _, group := range groups {
 				gopool.Go(func() {
 					ctx.SendGroupMessage(group, msgChain)
 				})
-				return true
-			})
+			}
 
 			return true
 		})
@@ -131,12 +138,11 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo) error {
 			msgChain.Split(
 				message.ImageBytes(imgB),
 			)
-			b.groups.RangeGroup(func(group int64) bool {
+			for _, group := range groups {
 				gopool.Go(func() {
 					ctx.SendGroupMessage(group, msgChain)
 				})
-				return true
-			})
+			}
 
 			return true
 		})

@@ -21,6 +21,9 @@ func (b *biliPlugin) init() error {
 	if err != nil {
 		return err
 	}
+	if conf.GroupUids == nil {
+		conf.GroupUids = make(map[int64][]int64)
+	}
 	b.conf = conf
 	err = b.initData(db)
 	if err != nil {

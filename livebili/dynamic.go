@@ -12,6 +12,7 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"gorm.io/gorm"
 	"io"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -25,8 +26,14 @@ func (b *biliPlugin) doCheckDynamic() error {
 	errChan := make(chan error, len(uids))
 	defer close(errChan)
 	for _, uid := range uids {
+		var groups []int64
+		if _, ok := b.conf.GroupUids[uid]; ok {
+			groups = b.conf.GroupUids[uid]
+		} else {
+			groups = slices.Collect(b.groups.RangeGroup)
+		}
 		gopool.Go(func() {
-			errChan <- b.doCheckOneDynamic(uid)
+			errChan <- b.doCheckOneDynamic(uid, groups)
 		})
 	}
 	var err error
@@ -39,7 +46,7 @@ func (b *biliPlugin) doCheckDynamic() error {
 	return err
 }
 
-func (b *biliPlugin) doCheckOneDynamic(uid int64) error {
+func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64) error {
 
 	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=%d", uid), b.conf.Cookies)
 	if err != nil {
@@ -73,7 +80,7 @@ func (b *biliPlugin) doCheckOneDynamic(uid int64) error {
 	wg := sync.WaitGroup{}
 
 	b.env.RangeBot(func(ctx *zero.Ctx) bool {
-		b.groups.RangeGroup(func(group int64) bool {
+		for _, group := range groups {
 			wg.Add(1)
 			gopool.Go(func() {
 				defer wg.Done()
@@ -83,8 +90,7 @@ func (b *biliPlugin) doCheckOneDynamic(uid int64) error {
 					time.Sleep(2 * time.Second)
 				}
 			})
-			return true
-		})
+		}
 		return true
 	})
 	wg.Wait()
