@@ -153,9 +153,6 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 }
 
 func (b *biliPlugin) checkLive(uids []int64) (r LiveResp, err error) {
-	for _, uid := range b.conf.Uids {
-		uids = append(uids, uid)
-	}
 	data := map[string]interface{}{
 		"uids": uids,
 	}

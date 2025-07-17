@@ -90,9 +90,12 @@ func (b *biliPlugin) doCheckOneFollower(uid int64, groups []int64) error {
 	var nickName string
 	var face string
 	for _, roomInfo := range live.Data {
-		nickName = roomInfo.Uname
-		face = roomInfo.Face
-		break
+		if roomInfo.Uid == uid {
+			nickName = roomInfo.Uname
+			face = roomInfo.Face
+			break
+		}
+
 	}
 
 	switch mode {
