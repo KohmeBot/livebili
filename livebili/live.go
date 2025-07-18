@@ -110,7 +110,7 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 				message.ImageBytes(imgB),
 				message.Text(fmt.Sprintf("https://live.bilibili.com/%d", info.RoomId)),
 			)
-			if b.gn8Iv.IsNowDND() {
+			if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 				// 免打扰状态下去除at全员
 				DeleteAtAll(&msgChain)
 			}

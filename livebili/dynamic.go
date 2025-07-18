@@ -177,7 +177,7 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
 		message.Image(cover),
 		message.Text(strings.TrimLeft(url, "//")),
 	)
-	if b.gn8Iv.IsNowDND() {
+	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 		// 免打扰状态下去除at全员
 		DeleteAtAll(&msgChain)
 	}
@@ -204,7 +204,7 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 		message.Text(fmt.Sprintf("%s发布了动态", pubTime)),
 		message.Text(text),
 	)
-	if b.gn8Iv.IsNowDND() {
+	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 		DeleteAtAll(&msgChain)
 	}
 	if len(imgMsg) > 0 {
@@ -229,7 +229,7 @@ func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 		message.Text(fmt.Sprintf("%s发布了动态", pubTime)),
 		message.Text(text),
 	)
-	if b.gn8Iv.IsNowDND() {
+	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 		DeleteAtAll(&msgChain)
 	}
 	ctx.SendGroupMessage(group, msgChain)

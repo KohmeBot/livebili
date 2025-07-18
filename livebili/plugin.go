@@ -48,7 +48,7 @@ func (b *biliPlugin) Commands() fmt.Stringer {
 }
 
 func (b *biliPlugin) Version() uint64 {
-	return uint64(version.NewVersion(0, 0, 61))
+	return uint64(version.NewVersion(0, 0, 62))
 }
 
 func (b *biliPlugin) OnBoot() {

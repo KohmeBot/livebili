@@ -29,6 +29,8 @@ type Config struct {
 	FollowerNotifyDuration int `yaml:"follower_notify_duration" mapstructure:"follower_notify_duration"`
 	// b站的cookies
 	Cookies string `yaml:"cookies" mapstructure:"cookies"`
+	// 是否at全员
+	AtAll bool `yaml:"at_all" mapstructure:"at_all"`
 }
 
 func (c *Config) randChoseLiveTips() string {
