@@ -192,7 +192,7 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 
 	text := dynamic.Desc.Text
 
-	var imgMsg []message.MessageSegment
+	var imgMsg []message.Segment
 	for _, item := range dynamic.Draw.Items {
 		imgMsg = append(imgMsg, message.Image(item.Src))
 	}
