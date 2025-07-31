@@ -29,19 +29,19 @@ jobs:
           FULL_IMPORT="$MODULE/$PKGNAME"
 
           cat <<EOF > version.go
-package main
-
-import (
-    "fmt"
-    "$FULL_IMPORT"
-    "github.com/kohmebot/pkg/version"
-)
-
-func main() {
-    p := $PKGNAME.NewPlugin()
-    fmt.Println(version.Version(p.Version()).String())
-}
-EOF
+          package main
+          
+          import (
+              "fmt"
+              "$FULL_IMPORT"
+              "github.com/kohmebot/pkg/version"
+          )
+          
+          func main() {
+              p := $PKGNAME.NewPlugin()
+              fmt.Println(version.Version(p.Version()).String())
+          }
+          EOF
 
           go mod tidy
           go build -o get-version version.go
