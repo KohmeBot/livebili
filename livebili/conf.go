@@ -27,6 +27,8 @@ type Config struct {
 	FollowerNotifyEach int `yaml:"follower_notify_each"`
 	// 当达到这个时间间隔时，推送一次粉丝数变化
 	FollowerNotifyDuration int `yaml:"follower_notify_duration"`
+	// 每个uid检查的间隔时间，单位为秒
+	CheckDuration int `yaml:"check_duration"`
 	// b站的cookies
 	Cookies string `yaml:"cookies"`
 	// 是否at全员

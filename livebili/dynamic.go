@@ -25,7 +25,7 @@ func (b *biliPlugin) doCheckDynamic() error {
 	}
 	errChan := make(chan error, len(uids))
 	defer close(errChan)
-	for _, uid := range uids {
+	for i, uid := range uids {
 		var groups []int64
 		if _, ok := b.conf.GroupUids[uid]; ok {
 			groups = b.conf.GroupUids[uid]
@@ -35,6 +35,9 @@ func (b *biliPlugin) doCheckDynamic() error {
 		gopool.Go(func() {
 			errChan <- b.doCheckOneDynamic(uid, groups)
 		})
+		if i < len(uids)-1 {
+			time.Sleep(time.Duration(b.conf.CheckDuration) * time.Second)
+		}
 	}
 	var err error
 	for i := 0; i < len(uids); i++ {
