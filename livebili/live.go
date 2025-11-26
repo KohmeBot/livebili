@@ -28,7 +28,7 @@ func (b *biliPlugin) doCheckLive() error {
 		if _, ok := b.conf.GroupUids[uid]; ok {
 			groups = b.conf.GroupUids[uid]
 		} else {
-			groups = slices.Collect(b.groups.RangeGroup)
+			groups = slices.Collect(b.groups.RangeGroup())
 		}
 		err = b.sendRoomInfo(&info, groups)
 		if err != nil {
@@ -102,7 +102,7 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 		if err != nil {
 			return err
 		}
-		b.env.RangeBot(func(ctx *zero.Ctx) bool {
+		b.env.UseBot(func(ctx *zero.Ctx) {
 			var msgChain chain.MessageChain
 			msgChain.Split(
 				message.AtAll(),
@@ -119,8 +119,6 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 					ctx.SendGroupMessage(group, msgChain)
 				})
 			}
-
-			return true
 		})
 		return nil
 	}
@@ -133,7 +131,7 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 		if err != nil {
 			return err
 		}
-		b.env.RangeBot(func(ctx *zero.Ctx) bool {
+		b.env.UseBot(func(ctx *zero.Ctx) {
 			var msgChain chain.MessageChain
 			msgChain.Split(
 				message.ImageBytes(imgB),
@@ -144,7 +142,6 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 				})
 			}
 
-			return true
 		})
 		return nil
 	}

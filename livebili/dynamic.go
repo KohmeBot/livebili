@@ -30,7 +30,7 @@ func (b *biliPlugin) doCheckDynamic() error {
 		if _, ok := b.conf.GroupUids[uid]; ok {
 			groups = b.conf.GroupUids[uid]
 		} else {
-			groups = slices.Collect(b.groups.RangeGroup)
+			groups = slices.Collect(b.groups.RangeGroup())
 		}
 		gopool.Go(func() {
 			errChan <- b.doCheckOneDynamic(uid, groups)
@@ -82,7 +82,7 @@ func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64) error {
 	}
 	wg := sync.WaitGroup{}
 
-	b.env.RangeBot(func(ctx *zero.Ctx) bool {
+	b.env.UseBot(func(ctx *zero.Ctx) {
 		for _, group := range groups {
 			wg.Add(1)
 			gopool.Go(func() {
@@ -94,7 +94,7 @@ func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64) error {
 				}
 			})
 		}
-		return true
+
 	})
 	wg.Wait()
 	return nil

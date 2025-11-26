@@ -1,17 +1,14 @@
 package livebili
 
 import (
-	"fmt"
 	"github.com/kohmebot/gn8/gn8sdk"
-	"github.com/kohmebot/pkg/command"
-	"github.com/kohmebot/pkg/version"
-	"github.com/kohmebot/plugin"
+	"github.com/kohmebot/plugin/v2"
 	"github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
 
 type biliPlugin struct {
-	e       *zero.Engine
+	e       plugin.Engine
 	env     plugin.Env
 	groups  plugin.Groups
 	conf    Config
@@ -23,7 +20,7 @@ func NewPlugin() plugin.Plugin {
 	return &biliPlugin{}
 }
 
-func (b *biliPlugin) Init(engine *zero.Engine, env plugin.Env) error {
+func (b *biliPlugin) OnInit(engine plugin.Engine, env plugin.Env) error {
 	b.e = engine
 	b.env = env
 	b.groups = env.Groups()
@@ -35,20 +32,16 @@ func (b *biliPlugin) Init(engine *zero.Engine, env plugin.Env) error {
 	return b.init()
 }
 
+func (b *biliPlugin) OnHelp(*zero.Ctx) {
+
+}
+
 func (b *biliPlugin) Name() string {
 	return "livebili"
 }
 
-func (b *biliPlugin) Description() string {
-	return "推送bilibili动态"
-}
-
-func (b *biliPlugin) Commands() fmt.Stringer {
-	return command.NewCommands()
-}
-
-func (b *biliPlugin) Version() uint64 {
-	return uint64(version.NewVersion(0, 0, 70))
+func (b *biliPlugin) Version() string {
+	return "v0.1.0"
 }
 
 func (b *biliPlugin) OnBoot() {

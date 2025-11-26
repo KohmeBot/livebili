@@ -13,12 +13,12 @@ github.com/jinzhu/inflection v1.0.0 h1:K317FqzuhWc8YvSVlFMCCUb36O/S9MCKRDI7QkRKD
 github.com/jinzhu/inflection v1.0.0/go.mod h1:h+uFLlag+Qp1Va5pdKtLDYj+kHp5pxUVkryuEj+Srlc=
 github.com/jinzhu/now v1.1.5 h1:/o9tlHleP7gOFmsnYNz3RGnqzefHA47wQpKrrdTIwXQ=
 github.com/jinzhu/now v1.1.5/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/z8=
-github.com/kohmebot/gn8 v0.0.1 h1:QDHdZclfeDTmg/qGFBbZxNpT9G8yNhQKnbKx6sM4No0=
-github.com/kohmebot/gn8 v0.0.1/go.mod h1:NuK+kfp1cNltC5ck8LZYFA6r4ld8qjwInkyfrHK5NKM=
+github.com/kohmebot/gn8 v0.0.5 h1:mp3keMfRjcIZd+xkfBmt1IOLfY/IYsiNRRAcw78Ygrs=
+github.com/kohmebot/gn8 v0.0.5/go.mod h1:nd9TThtpj6wTy0ngSilG+B44xD12I7MUMasaOODmdPE=
 github.com/kohmebot/pkg v1.0.2 h1:w+wzrdfM4uZfruos4kjkBE127nWB9n96I9J3TU6zKMs=
 github.com/kohmebot/pkg v1.0.2/go.mod h1:lBzLMdnCgnJjiEzgBRn2brSDLju0V4gvjx4AFVIJii4=
-github.com/kohmebot/plugin v1.2.5 h1:pBIGipMT8c1ivYdvGWoG1mMVXnoPFw40VkOGKANeya0=
-github.com/kohmebot/plugin v1.2.5/go.mod h1:MtJnzIjJEKM5zYdDQlbxNUaCIUMv7RRhfGcfaQhYd/Q=
+github.com/kohmebot/plugin/v2 v2.0.1 h1:R8MCDpqpCYv2Wn4ZGbjvEMudzY6vkkizrJX6pUbJyI4=
+github.com/kohmebot/plugin/v2 v2.0.1/go.mod h1:clrLaDbymWohiWuZUGZypPvFm5w4qXmPPvX1aGPGU98=
 github.com/panjf2000/ants/v2 v2.10.0 h1:zhRg1pQUtkyRiOFo2Sbqwjp0GfBNo9cUY2/Grpx1p+8=
 github.com/panjf2000/ants/v2 v2.10.0/go.mod h1:7ZxyxsqE4vvW0M7LSD8aI3cKwgFhBHbxnlN8mDqHa1I=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

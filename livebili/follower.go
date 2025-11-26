@@ -8,6 +8,7 @@ import (
 	"github.com/kohmebot/pkg/canvas"
 	"github.com/kohmebot/pkg/chain"
 	"github.com/kohmebot/pkg/gopool"
+	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"gorm.io/gorm"
 	"io"
@@ -27,7 +28,7 @@ func (b *biliPlugin) doCheckFollower() error {
 		if _, ok := b.conf.GroupUids[uid]; ok {
 			groups = b.conf.GroupUids[uid]
 		} else {
-			groups = slices.Collect(b.groups.RangeGroup)
+			groups = slices.Collect(b.groups.RangeGroup())
 		}
 		gopool.Go(func() {
 			errChan <- b.doCheckOneFollower(uid, groups)
@@ -227,11 +228,12 @@ func (b *biliPlugin) onFollowerChange(follower int, record *FollowerRecord, nick
 		message.ImageBytes(imgBytes),
 	)
 
-	for ctx := range b.env.RangeBot {
+	b.env.UseBot(func(ctx *zero.Ctx) {
 		for _, gid := range groups {
 			ctx.SendGroupMessage(gid, msgChain)
 		}
-	}
+	})
+
 	return nil
 }
 
@@ -249,11 +251,11 @@ func (b *biliPlugin) onSpecialNumber(follower int, record *FollowerRecord, nickN
 		message.Text(tips),
 		message.Text(fmt.Sprintf("%d → %d", record.LastUpdateFollower, follower)),
 	)
-	for ctx := range b.env.RangeBot {
+	b.env.UseBot(func(ctx *zero.Ctx) {
 		for _, gid := range groups {
 			ctx.SendGroupMessage(gid, msgChain)
 		}
-	}
+	})
 	return nil
 
 }
@@ -273,10 +275,10 @@ func (b *biliPlugin) onAroundSpecialNumber(follower int, record *FollowerRecord,
 		message.Text(tips),
 		message.Text(fmt.Sprintf("%d → %d", record.LastUpdateFollower, follower)),
 	)
-	for ctx := range b.env.RangeBot {
+	b.env.UseBot(func(ctx *zero.Ctx) {
 		for _, gid := range groups {
 			ctx.SendGroupMessage(gid, msgChain)
 		}
-	}
+	})
 	return nil
 }

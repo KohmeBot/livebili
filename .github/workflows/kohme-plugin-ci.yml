@@ -30,16 +30,15 @@ jobs:
 
           cat <<EOF > version.go
           package main
-          
+
           import (
               "fmt"
               "$FULL_IMPORT"
-              "github.com/kohmebot/pkg/version"
           )
-          
+
           func main() {
               p := $PKGNAME.NewPlugin()
-              fmt.Println(version.Version(p.Version()).String())
+              fmt.Println(p.Version())
           }
           EOF
 
@@ -47,6 +46,7 @@ jobs:
           go build -o get-version version.go
           VERSION=$(./get-version)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"
           git checkout .
 
       - name: Check version increment
@@ -91,8 +91,8 @@ jobs:
         if: success()  # 只有校验成功才执行
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
           body: ${{ github.event.head_commit.message }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

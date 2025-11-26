@@ -118,8 +118,8 @@ func (b *biliPlugin) tickerFollower() {
 }
 
 func (b *biliPlugin) sendError(err error) {
-	b.env.RangeBot(func(ctx *zero.Ctx) bool {
+	b.env.UseBot(func(ctx *zero.Ctx) {
 		b.env.Error(ctx, fmt.Errorf("我出错了喵！快帮我联系管理员喵！！%w", err))
-		return true
+
 	})
 }
