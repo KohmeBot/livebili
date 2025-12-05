@@ -70,21 +70,21 @@ jobs:
 
             const latestVersion = releases.data[0].tag_name;
 
-            console.log(`Latest release: ${latestVersion}`);
-            console.log(`New version: ${newVersion}`);
+            console.log("Latest release: ${latestVersion}");
+            console.log("New version: ${newVersion}");
 
             if (!semver.valid(newVersion)) {
-              core.setFailed(`New version (${newVersion}) is not a valid semver.`);
+              core.setFailed("New version (${newVersion}) is not a valid semver.");
               return;
             }
 
             if (!semver.valid(latestVersion)) {
-              console.log(`Latest release version (${latestVersion}) is invalid semver, skipping check.`);
+              console.log("Latest release version (${latestVersion}) is invalid semver, skipping check.");
               return;
             }
 
             if (semver.lte(newVersion, latestVersion)) {
-              core.setFailed(`New version (${newVersion}) is not greater than latest release version (${latestVersion})`);
+              core.setFailed("New version (${newVersion}) is not greater than latest release version (${latestVersion})");
             }
 
       - name: Release
