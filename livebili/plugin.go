@@ -41,7 +41,7 @@ func (b *biliPlugin) Name() string {
 }
 
 func (b *biliPlugin) Version() string {
-	return "v0.1.0"
+	return "v0.1.01"
 }
 
 func (b *biliPlugin) OnBoot() {

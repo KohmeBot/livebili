@@ -13,7 +13,7 @@ type ErrorSender struct {
 	lastErrorTime time.Time
 }
 
-var sendDuration = 5 * time.Minute
+var sendDuration = 30 * time.Minute
 
 func newErrorSender(do func(err error)) *ErrorSender {
 	return &ErrorSender{do: do}
