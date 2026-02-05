@@ -22,6 +22,9 @@ func (b *biliPlugin) doCheckLive() error {
 	uids = slices.DeleteFunc(uids, func(uid int64) bool {
 		return slices.Contains(b.conf.NoLiveUids, uid)
 	})
+	if len(uids) == 0 {
+		return nil
+	}
 
 	live, err := b.checkLive(uids)
 	if err != nil {
