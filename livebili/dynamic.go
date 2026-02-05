@@ -21,6 +21,9 @@ import (
 func (b *biliPlugin) doCheckDynamic() error {
 	var uids []int64
 	for _, uid := range b.conf.Uids {
+		if slices.Contains(b.conf.NoDynamicUids, uid) {
+			continue
+		}
 		uids = append(uids, uid)
 	}
 	errChan := make(chan error, len(uids))

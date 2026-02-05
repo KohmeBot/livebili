@@ -18,7 +18,12 @@ import (
 )
 
 func (b *biliPlugin) doCheckLive() error {
-	live, err := b.checkLive(b.conf.Uids)
+	uids := slices.Clone(b.conf.Uids)
+	uids = slices.DeleteFunc(uids, func(uid int64) bool {
+		return slices.Contains(b.conf.NoLiveUids, uid)
+	})
+
+	live, err := b.checkLive(uids)
 	if err != nil {
 		return err
 	}

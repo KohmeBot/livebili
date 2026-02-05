@@ -9,6 +9,12 @@ type Config struct {
 	Uids []int64 `yaml:"uids" `
 	// 指定分群订阅uid
 	GroupUids map[int64][]int64 `yaml:"group_uids"`
+	// 不推送直播状态的uid
+	NoLiveUids []int64 `yaml:"no_live_uids"`
+	// 不推送粉丝数的uid
+	NoFollowerUids []int64 `yaml:"no_follower_uids"`
+	// 不推送动态的uid
+	NoDynamicUids []int64 `yaml:"no_dynamic_uids"`
 	// 字体文件路径
 	TTF string `yaml:"ttf" mapstructure:"ttf"`
 	// 检查直播间状态的间隔时间，单位为秒
