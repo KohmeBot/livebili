@@ -104,6 +104,8 @@ type ModuleAuthor struct {
 	// 剧集名称
 	// 合集名称
 	Name string `json:"name"`
+	// 头像URL
+	Face string `json:"face"`
 	// x分钟前
 	// x小时前
 	// 昨天
@@ -143,6 +145,10 @@ type MajorArchive struct {
 	Cover   string `json:"cover"`
 	Title   string `json:"title"`
 	JumpUrl string `json:"jump_url"`
+	// BV号
+	BvID string `json:"bvid"`
+	// 时长
+	DurationText string `json:"duration_text"`
 }
 
 // MajorDraw 带图动态

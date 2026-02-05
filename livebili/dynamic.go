@@ -150,9 +150,10 @@ func (b *biliPlugin) updateDynamic(uid int64, dynamic *DynamicResp) (updates []D
 }
 
 func (b *biliPlugin) sendDynamic(ctx *zero.Ctx, group int64, dynamic *Dynamic) {
+	var err error
 	switch dynamic.Type {
 	case "DYNAMIC_TYPE_AV":
-		b.onAv(ctx, group, &dynamic.Modules)
+		err = b.onAv(ctx, group, &dynamic.Modules)
 	case "DYNAMIC_TYPE_DRAW":
 		b.onDraw(ctx, group, &dynamic.Modules)
 	case "DYNAMIC_TYPE_WORD":
@@ -160,32 +161,70 @@ func (b *biliPlugin) sendDynamic(ctx *zero.Ctx, group int64, dynamic *Dynamic) {
 	default:
 		logrus.Warnf("unknown dynamic type: %s", dynamic.Type)
 	}
+
+	if err != nil {
+		b.env.Error(ctx, err)
+	}
+
 }
 
 // 投稿了视频
-func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
+func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
+	face := dynamic.ModuleAuthor.Face
 
 	title := dynamic.Archive.Title
 	cover := dynamic.Archive.Cover
 	url := dynamic.Archive.JumpUrl
+	bv := dynamic.Archive.BvID
+	duration := dynamic.Archive.DurationText
+
+	ava, err := request.FetchImage(face)
+	if err != nil {
+		return err
+	}
+	coverImg, err := request.FetchImage(cover)
+	if err != nil {
+		return err
+	}
+
+	avImg := NewAvImg(b.ttfPath, ava, userName)
 
 	var msgChain chain.MessageChain
-	msgChain.Split(
-		message.AtAll(),
-		message.Text(fmt.Sprintf("@%s", userName)),
-		message.Text(fmt.Sprintf("%s投稿了视频", pubTime)),
-		message.Text(fmt.Sprintf("【%s】", title)),
-		message.Image(cover),
-		message.Text(strings.TrimLeft(url, "//")),
-	)
+	img, err := avImg.DrawOnAv(coverImg, title, bv, duration)
+
+	if err != nil {
+		b.env.Error(ctx, err)
+		// 图片生成错误，用文字发送
+		msgChain.Split(
+			message.AtAll(),
+			message.Text(fmt.Sprintf("@%s", userName)),
+			message.Text(fmt.Sprintf("%s投稿了视频", pubTime)),
+			message.Text(fmt.Sprintf("【%s】", title)),
+			message.Image(cover),
+			message.Text(strings.TrimLeft(url, "//")),
+		)
+	} else {
+		imgB, err := ImageToBytes(img)
+		if err != nil {
+			return err
+		}
+		msgChain.Split(
+			message.AtAll(),
+			message.Text(fmt.Sprintf("@%s", userName)),
+			message.Text(fmt.Sprintf("%s投稿了视频", pubTime)),
+			message.ImageBytes(imgB),
+			message.Text(strings.TrimLeft(url, "//")),
+		)
+	}
+
 	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 		// 免打扰状态下去除at全员
 		DeleteAtAll(&msgChain)
 	}
 	ctx.SendGroupMessage(group, msgChain)
-
+	return nil
 }
 
 // 带图动态
