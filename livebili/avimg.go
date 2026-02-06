@@ -67,8 +67,8 @@ func drawAv(dc *gg.Context, ttf string, x, y float64, img image.Image, name stri
 	if err != nil {
 		return err
 	}
-	dc.SetRGBA(0.5, 0.5, 0.5, 0.8)
-	dc.DrawStringAnchored(bv, x+704-60, y+30, 1, 0.5)
+	dc.SetRGBA(0, 0, 0, 0.6)
+	dc.DrawStringAnchored(bv, x+704-30, y+30, 1, 0.5)
 
 	err = dc.LoadFontFace(ttf, 15)
 	if err != nil {
@@ -76,7 +76,7 @@ func drawAv(dc *gg.Context, ttf string, x, y float64, img image.Image, name stri
 	}
 	dc.SetRGBA(0, 0, 0, 0.6)
 
-	dc.DrawStringAnchored(fmt.Sprintf("时长: %s", duration), x+704-20, y+170, 1, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("时长: %s", duration), x+704-30, y+170, 1, 0.5)
 
 	err = dc.LoadFontFace(ttf, 20)
 	if err != nil {
