@@ -20,6 +20,10 @@ func NewPlugin() plugin.Plugin {
 	return &biliPlugin{}
 }
 
+func (b *biliPlugin) ConfigModel() any {
+	return new(Config)
+}
+
 func (b *biliPlugin) OnInit(engine plugin.Engine, env plugin.Env) error {
 	b.e = engine
 	b.env = env
@@ -41,7 +45,7 @@ func (b *biliPlugin) Name() string {
 }
 
 func (b *biliPlugin) Version() string {
-	return "v0.1.32"
+	return "v0.1.40"
 }
 
 func (b *biliPlugin) OnBoot() {
