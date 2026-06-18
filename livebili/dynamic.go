@@ -54,7 +54,7 @@ func (b *biliPlugin) doCheckDynamic() error {
 
 func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64) error {
 
-	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=%d", uid), b.conf.Cookies)
+	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=%d", uid), string(b.conf.Cookies))
 	if err != nil {
 		return err
 	}

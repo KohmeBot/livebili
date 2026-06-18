@@ -165,7 +165,7 @@ func (b *biliPlugin) checkLive(uids []int64) (r LiveResp, err error) {
 	if err != nil {
 		return r, err
 	}
-	resp, err := request.DoPost("https://api.live.bilibili.com/room/v1/Room/get_status_info_by_uids", "application/json", bytes.NewBuffer(jsonData), b.conf.Cookies)
+	resp, err := request.DoPost("https://api.live.bilibili.com/room/v1/Room/get_status_info_by_uids", "application/json", bytes.NewBuffer(jsonData), string(b.conf.Cookies))
 	if err != nil {
 		return r, err
 	}

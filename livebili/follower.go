@@ -121,7 +121,7 @@ func (b *biliPlugin) doCheckOneFollower(uid int64, groups []int64) error {
 }
 
 func (b *biliPlugin) checkFollower(uid int64) (r FollowerResp, err error) {
-	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/relation/stat?&vmid=%d", uid), b.conf.Cookies)
+	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/relation/stat?&vmid=%d", uid), string(b.conf.Cookies))
 	if err != nil {
 		return r, err
 	}
