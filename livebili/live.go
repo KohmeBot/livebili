@@ -99,25 +99,49 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 	if err != nil {
 		return err
 	}
-	liveImg := NewLiveImg(b.ttfPath, ava, info.Uname)
+	avatarData, err := imageDataURI(ava)
+	if err != nil {
+		return err
+	}
+	coverData, err := imageDataURI(cover)
+	if err != nil {
+		return err
+	}
 
 	if living {
-		img, err := liveImg.DrawOnLive(cover, info.Title, record.LastOffTime)
-		if err != nil {
-			return err
-		}
-		imgB, err := ImageToBytes(img)
-		if err != nil {
-			return err
-		}
+		imgB, renderErr := renderCardImage(CardData{
+			Theme:     "coral",
+			Icon:      "●",
+			Label:     "正在直播",
+			Badge:     "LIVE",
+			Avatar:    avatarData,
+			Author:    info.Uname,
+			Meta:      "刚刚开播",
+			Title:     info.Title,
+			Cover:     coverData,
+			StatLabel: "距离上次直播",
+			StatValue: durationText(record.LastOffTime),
+			Footer:    "哔哩哔哩 · 直播提醒",
+		}, b.conf.ChromeAddr())
 		b.env.UseBot(func(ctx *zero.Ctx) {
 			var msgChain chain.MessageChain
-			msgChain.Split(
-				message.AtAll(),
-				message.Text(b.conf.randChoseLiveTips()),
-				message.ImageBytes(imgB),
-				message.Text(fmt.Sprintf("https://live.bilibili.com/%d", info.RoomId)),
-			)
+			if renderErr != nil {
+				b.env.Error(ctx, renderErr)
+				msgChain.Split(
+					message.AtAll(),
+					message.Text(b.conf.randChoseLiveTips()),
+					message.Text(fmt.Sprintf("@%s 正在直播：%s", info.Uname, info.Title)),
+					message.Image(info.CoverFromUser),
+					message.Text(fmt.Sprintf("https://live.bilibili.com/%d", info.RoomId)),
+				)
+			} else {
+				msgChain.Split(
+					message.AtAll(),
+					message.Text(b.conf.randChoseLiveTips()),
+					message.ImageBytes(imgB),
+					message.Text(fmt.Sprintf("https://live.bilibili.com/%d", info.RoomId)),
+				)
+			}
 			if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 				// 免打扰状态下去除at全员
 				DeleteAtAll(&msgChain)
@@ -131,19 +155,28 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 		return nil
 	}
 	if !living && b.conf.SendOff {
-		img, err := liveImg.DrawOffLive(b.conf.randChoseOffTips(), record.LastLiveTime)
-		if err != nil {
-			return err
-		}
-		imgB, err := ImageToBytes(img)
-		if err != nil {
-			return err
-		}
+		tip := b.conf.randChoseOffTips()
+		imgB, renderErr := renderCardImage(CardData{
+			Theme:     "sky",
+			Icon:      "☾",
+			Label:     "直播结束",
+			Badge:     "OFFLINE",
+			Avatar:    avatarData,
+			Author:    info.Uname,
+			Meta:      "本场直播已经结束",
+			Body:      tip,
+			StatLabel: "本次直播时长",
+			StatValue: durationText(record.LastLiveTime),
+			Footer:    "哔哩哔哩 · 下播提醒",
+		}, b.conf.ChromeAddr())
 		b.env.UseBot(func(ctx *zero.Ctx) {
 			var msgChain chain.MessageChain
-			msgChain.Split(
-				message.ImageBytes(imgB),
-			)
+			if renderErr != nil {
+				b.env.Error(ctx, renderErr)
+				msgChain.Split(message.Text(fmt.Sprintf("@%s %s（直播时长 %s）", info.Uname, tip, durationText(record.LastLiveTime))))
+			} else {
+				msgChain.Split(message.ImageBytes(imgB))
+			}
 			for _, group := range groups {
 				gopool.Go(func() {
 					ctx.SendGroupMessage(group, msgChain)

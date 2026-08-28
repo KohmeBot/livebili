@@ -1,0 +1,59 @@
+{{define "card" -}}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Label}}</title>
+{{template "card-style" .}}
+</head>
+<body class="theme-{{.Theme}}">
+<main class="page">
+  <span class="doodle doodle-star">★</span>
+  <span class="doodle doodle-heart">♥</span>
+  <span class="doodle doodle-spark">✦</span>
+
+  <article class="card">
+    <span class="tape tape-left"></span>
+    <span class="tape tape-right"></span>
+
+    <header class="profile">
+      {{if .Avatar}}<img class="avatar" src="{{safeImageURL .Avatar}}" alt="">{{else}}<span class="avatar avatar-fallback">{{.AvatarFallback}}</span>{{end}}
+      <div class="profile-copy">
+        <div class="author">{{.Author}}</div>
+        {{if .Meta}}<div class="meta">{{.Meta}}</div>{{end}}
+      </div>
+      {{if .Badge}}<div class="badge">{{.Badge}}</div>{{end}}
+    </header>
+
+    <div class="event-label"><span class="event-icon">{{.Icon}}</span>{{.Label}}</div>
+
+    {{if .Title}}<h1 class="title">{{.Title}}</h1>{{end}}
+    {{if .Body}}<div class="body-text">{{.Body}}</div>{{end}}
+
+    {{if .Cover}}
+    <figure class="cover-wrap">
+      <img class="cover" src="{{safeImageURL .Cover}}" alt="">
+      <span class="corner-sticker">LOOK!</span>
+    </figure>
+    {{end}}
+
+    {{if .Gallery}}
+    <div class="gallery gallery-{{len .Gallery}}">
+      {{range .Gallery}}<img src="{{safeImageURL .}}" alt="">{{end}}
+    </div>
+    {{end}}
+
+    {{if or .StatLabel .StatValue}}
+    <div class="stat-note">
+      {{if .StatLabel}}<span>{{.StatLabel}}</span>{{end}}
+      {{if .StatValue}}<strong>{{.StatValue}}</strong>{{end}}
+    </div>
+    {{end}}
+
+    <footer><span>✿</span>{{.Footer}}<span>✦</span></footer>
+  </article>
+</main>
+</body>
+</html>
+{{- end}}

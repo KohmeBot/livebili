@@ -8,12 +8,11 @@ import (
 )
 
 type biliPlugin struct {
-	e       plugin.Engine
-	env     plugin.Env
-	groups  plugin.Groups
-	conf    Config
-	gn8Iv   *gn8
-	ttfPath string
+	e      plugin.Engine
+	env    plugin.Env
+	groups plugin.Groups
+	conf   Config
+	gn8Iv  *gn8
 }
 
 func NewPlugin() plugin.Plugin {
@@ -45,7 +44,7 @@ func (b *biliPlugin) Name() string {
 }
 
 func (b *biliPlugin) Version() string {
-	return "v0.1.40"
+	return "v0.2.0"
 }
 
 func (b *biliPlugin) OnBoot() {

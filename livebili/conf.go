@@ -3,6 +3,7 @@ package livebili
 import (
 	"github.com/kohmebot/plugin/v2/ui"
 	"math/rand"
+	"strings"
 )
 
 type Config struct {
@@ -22,7 +23,11 @@ type Config struct {
 	NoDynamicUids []int64 `yaml:"no_dynamic_uids" jsonschema:"description=不推送动态的uid"`
 
 	// 字体文件路径
-	TTF string `yaml:"ttf" jsonschema:"description=字体文件路径"`
+	// Deprecated: HTML 卡片使用浏览器字体栈，此字段仅保留旧配置兼容。
+	TTF string `yaml:"ttf" jsonschema:"description=旧版绘图字体路径|HTML 卡片已不再使用"`
+
+	// Chrome DevTools WebSocket 地址。留空时使用本机 Chrome。
+	ChromeWs string `yaml:"chrome_ws" jsonschema:"description=Chrome DevTools WebSocket 地址|留空时使用本机 Chrome"`
 
 	// 检查直播间状态的间隔时间，单位为秒
 	CheckLiveDuration int `yaml:"check_live_duration" jsonschema:"description=检查直播间状态的间隔时间，单位为秒"`
@@ -56,6 +61,14 @@ type Config struct {
 
 	// 是否at全员
 	AtAll bool `yaml:"at_all" jsonschema:"description=是否at全员"`
+}
+
+func (c Config) ChromeAddr() string {
+	addr := strings.TrimSpace(c.ChromeWs)
+	if addr == "" || strings.HasPrefix(addr, "ws://") || strings.HasPrefix(addr, "wss://") {
+		return addr
+	}
+	return "ws://" + addr
 }
 
 func (c *Config) randChoseLiveTips() string {

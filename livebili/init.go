@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"gorm.io/gorm"
-	"path/filepath"
 	"time"
 )
 
@@ -32,12 +31,6 @@ func (b *biliPlugin) init() error {
 	go b.tickerLive()
 	go b.tickerDynamic()
 	go b.tickerFollower()
-
-	path, err := b.env.FilePath()
-	if err != nil {
-		return err
-	}
-	b.ttfPath = filepath.Join(path, b.conf.TTF)
 
 	return nil
 }

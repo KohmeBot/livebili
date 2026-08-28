@@ -3,6 +3,8 @@ module github.com/kohmebot/livebili
 go 1.24
 
 require (
+	github.com/chromedp/cdproto v0.0.0-20250403032234-65de8f5d025b
+	github.com/chromedp/chromedp v0.13.7
 	github.com/disintegration/imaging v1.6.2
 	github.com/fogleman/gg v1.3.0
 	github.com/kohmebot/gn8 v0.0.5
@@ -18,7 +20,12 @@ require (
 	github.com/FloatTech/ttl v0.0.0-20240716161252-965925764562 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
+	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-json-experiment/json v0.0.0-20250211171154-1ae217ad3535 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -32,7 +39,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/image v0.21.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

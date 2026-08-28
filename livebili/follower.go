@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kohmebot/livebili/request"
-	"github.com/kohmebot/pkg/canvas"
 	"github.com/kohmebot/pkg/chain"
 	"github.com/kohmebot/pkg/gopool"
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -204,34 +203,46 @@ func (b *biliPlugin) onTimeReached(follower int, record *FollowerRecord, nickNam
 
 func (b *biliPlugin) onFollowerChange(follower int, record *FollowerRecord, nickName string, face string, groups []int64) error {
 	delta := follower - record.LastUpdateFollower
-	var factory canvas.ImageFactory
-	factory.Url(face)
-	img, err := factory.Get()
+	avatar, err := request.FetchImage(face)
 	if err != nil {
 		return err
 	}
-	fi := NewFollowerImg(b.ttfPath, img, nickName)
+	avatarData, err := imageDataURI(avatar)
+	if err != nil {
+		return err
+	}
 
-	var c *canvas.Canvas
+	data := CardData{
+		Icon:      "↗",
+		Label:     "粉丝动态",
+		Avatar:    avatarData,
+		Author:    nickName,
+		StatLabel: "当前粉丝数",
+		StatValue: fmt.Sprintf("%d", follower),
+		Footer:    "哔哩哔哩 · 粉丝变化",
+	}
 	if delta > 0 {
-		c, err = fi.DrawUpFollower(follower, delta)
+		data.Theme = "mint"
+		data.Badge = "UP"
+		data.Title = "涨粉了！"
+		data.Body = fmt.Sprintf("新增 %d 位粉丝", delta)
 	} else {
-		c, err = fi.DrawDownFollower(follower, -delta)
+		data.Theme = "grape"
+		data.Icon = "↘"
+		data.Badge = "DOWN"
+		data.Title = "粉丝数有变化…"
+		data.Body = fmt.Sprintf("失去了 %d 位粉丝", -delta)
 	}
-	if err != nil {
-		return err
-	}
-	imgBytes, err := c.ToBytes()
-	if err != nil {
-		return err
-	}
-
-	var msgChain chain.MessageChain
-	msgChain.Split(
-		message.ImageBytes(imgBytes),
-	)
+	imgBytes, renderErr := renderCardImage(data, b.conf.ChromeAddr())
 
 	b.env.UseBot(func(ctx *zero.Ctx) {
+		var msgChain chain.MessageChain
+		if renderErr != nil {
+			b.env.Error(ctx, renderErr)
+			msgChain.Split(message.Text(fmt.Sprintf("@%s %s，当前粉丝数 %d", nickName, data.Body, follower)))
+		} else {
+			msgChain.Split(message.ImageBytes(imgBytes))
+		}
 		for _, gid := range groups {
 			ctx.SendGroupMessage(gid, msgChain)
 		}

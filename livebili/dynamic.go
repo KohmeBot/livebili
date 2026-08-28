@@ -158,9 +158,9 @@ func (b *biliPlugin) sendDynamic(ctx *zero.Ctx, group int64, dynamic *Dynamic) {
 	case "DYNAMIC_TYPE_AV":
 		err = b.onAv(ctx, group, &dynamic.Modules)
 	case "DYNAMIC_TYPE_DRAW":
-		b.onDraw(ctx, group, &dynamic.Modules)
+		err = b.onDraw(ctx, group, &dynamic.Modules)
 	case "DYNAMIC_TYPE_WORD":
-		b.onWord(ctx, group, &dynamic.Modules)
+		err = b.onWord(ctx, group, &dynamic.Modules)
 	default:
 		logrus.Warnf("unknown dynamic type: %s", dynamic.Type)
 	}
@@ -192,14 +192,33 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) e
 		return err
 	}
 
-	avImg := NewAvImg(b.ttfPath, ava, userName)
-
 	var msgChain chain.MessageChain
-	img, err := avImg.DrawOnAv(coverImg, title, bv, duration)
+	avatarData, err := imageDataURI(ava)
+	if err != nil {
+		return err
+	}
+	coverData, err := imageDataURI(coverImg)
+	if err != nil {
+		return err
+	}
+	imgB, err := renderCardImage(CardData{
+		Theme:     "coral",
+		Icon:      "▶",
+		Label:     "视频投稿",
+		Badge:     bv,
+		Avatar:    avatarData,
+		Author:    userName,
+		Meta:      fmt.Sprintf("%s投稿了视频", pubTime),
+		Title:     title,
+		Cover:     coverData,
+		StatLabel: "视频时长",
+		StatValue: duration,
+		Footer:    "哔哩哔哩 · 视频更新",
+	}, b.conf.ChromeAddr())
 
 	if err != nil {
 		b.env.Error(ctx, err)
-		// 图片生成错误，用文字发送
+		// Chrome 生成失败时仍发送原有文字消息，避免漏掉动态。
 		msgChain.Split(
 			message.AtAll(),
 			message.Text(fmt.Sprintf("@%s", userName)),
@@ -209,10 +228,6 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) e
 			message.Text(strings.TrimLeft(url, "//")),
 		)
 	} else {
-		imgB, err := ImageToBytes(img)
-		if err != nil {
-			return err
-		}
 		msgChain.Split(
 			message.AtAll(),
 			message.Text(fmt.Sprintf("@%s", userName)),
@@ -231,12 +246,69 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) e
 }
 
 // 带图动态
-func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
+func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
-
 	text := dynamic.Desc.Text
 
+	avatarData := ""
+	if dynamic.ModuleAuthor.Face != "" {
+		ava, err := request.FetchImage(dynamic.ModuleAuthor.Face)
+		if err == nil {
+			avatarData, err = imageDataURI(ava)
+		}
+		if err != nil {
+			logrus.Warnf("获取动态头像失败: %v", err)
+		}
+	}
+
+	gallery := make([]string, 0, len(dynamic.Draw.Items))
+	for _, item := range dynamic.Draw.Items {
+		img, err := request.FetchImage(item.Src)
+		if err != nil {
+			b.env.Error(ctx, err)
+			b.sendDrawFallback(ctx, group, dynamic)
+			return nil
+		}
+		dataURI, err := imageDataURI(img)
+		if err != nil {
+			b.env.Error(ctx, err)
+			b.sendDrawFallback(ctx, group, dynamic)
+			return nil
+		}
+		gallery = append(gallery, dataURI)
+	}
+
+	imgBytes, err := renderCardImage(CardData{
+		Theme:   "pink",
+		Icon:    "✎",
+		Label:   "发布动态",
+		Avatar:  avatarData,
+		Author:  userName,
+		Meta:    pubTime,
+		Body:    text,
+		Gallery: gallery,
+		Footer:  "哔哩哔哩 · 图文动态",
+	}, b.conf.ChromeAddr())
+	if err != nil {
+		b.env.Error(ctx, err)
+		b.sendDrawFallback(ctx, group, dynamic)
+		return nil
+	}
+
+	var msgChain chain.MessageChain
+	msgChain.Split(
+		message.AtAll(),
+		message.ImageBytes(imgBytes),
+	)
+	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+		DeleteAtAll(&msgChain)
+	}
+	ctx.SendGroupMessage(group, msgChain)
+	return nil
+}
+
+func (b *biliPlugin) sendDrawFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
 	var imgMsg []message.Segment
 	for _, item := range dynamic.Draw.Items {
 		imgMsg = append(imgMsg, message.Image(item.Src))
@@ -245,9 +317,9 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 	var msgChain chain.MessageChain
 	msgChain.Split(
 		message.AtAll(),
-		message.Text(fmt.Sprintf("@%s", userName)),
-		message.Text(fmt.Sprintf("%s发布了动态", pubTime)),
-		message.Text(text),
+		message.Text(fmt.Sprintf("@%s", dynamic.ModuleAuthor.Name)),
+		message.Text(fmt.Sprintf("%s发布了动态", dynamic.ModuleAuthor.PubTime)),
+		message.Text(dynamic.Desc.Text),
 	)
 	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 		DeleteAtAll(&msgChain)
@@ -257,22 +329,59 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 		msgChain.Split(imgMsg...)
 	}
 	ctx.SendGroupMessage(group, msgChain)
-
 }
 
 // 纯文字动态
-func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
+func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
-
 	text := dynamic.Desc.Text
+	avatarData := ""
+	if dynamic.ModuleAuthor.Face != "" {
+		ava, err := request.FetchImage(dynamic.ModuleAuthor.Face)
+		if err == nil {
+			avatarData, err = imageDataURI(ava)
+		}
+		if err != nil {
+			logrus.Warnf("获取动态头像失败: %v", err)
+		}
+	}
+
+	imgBytes, err := renderCardImage(CardData{
+		Theme:  "grape",
+		Icon:   "✎",
+		Label:  "发布动态",
+		Avatar: avatarData,
+		Author: userName,
+		Meta:   pubTime,
+		Body:   text,
+		Footer: "哔哩哔哩 · 文字动态",
+	}, b.conf.ChromeAddr())
+	if err != nil {
+		b.env.Error(ctx, err)
+		b.sendWordFallback(ctx, group, dynamic)
+		return nil
+	}
 
 	var msgChain chain.MessageChain
 	msgChain.Split(
 		message.AtAll(),
-		message.Text(fmt.Sprintf("@%s", userName)),
-		message.Text(fmt.Sprintf("%s发布了动态", pubTime)),
-		message.Text(text),
+		message.ImageBytes(imgBytes),
+	)
+	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+		DeleteAtAll(&msgChain)
+	}
+	ctx.SendGroupMessage(group, msgChain)
+	return nil
+}
+
+func (b *biliPlugin) sendWordFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
+	var msgChain chain.MessageChain
+	msgChain.Split(
+		message.AtAll(),
+		message.Text(fmt.Sprintf("@%s", dynamic.ModuleAuthor.Name)),
+		message.Text(fmt.Sprintf("%s发布了动态", dynamic.ModuleAuthor.PubTime)),
+		message.Text(dynamic.Desc.Text),
 	)
 	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
 		DeleteAtAll(&msgChain)
