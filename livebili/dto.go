@@ -138,6 +138,62 @@ type Major struct {
 	Type    string       `json:"type"`
 	Archive MajorArchive `json:"archive"`
 	Draw    MajorDraw    `json:"draw"`
+	Opus    Opus         `json:"opus"`
+}
+
+type Opus struct {
+	JumpUrl    string      `json:"jump_url"`
+	Title      string      `json:"title"`
+	Summary    OpusSummary `json:"summary"`
+	Style      int         `json:"style"`
+	Pics       []OpusPic   `json:"pics"`
+	FoldAction []string    `json:"fold_action"`
+	Paywall    interface{} `json:"paywall"`
+}
+
+type OpusSummary struct {
+	Text          string         `json:"text"`
+	RichTextNodes []RichTextNode `json:"rich_text_nodes"`
+	Paragraphs    []interface{}  `json:"paragraphs"`
+	HasMore       bool           `json:"has_more"`
+}
+
+type RichTextNode struct {
+	Text     string        `json:"text"`
+	OrigText string        `json:"orig_text"`
+	Type     string        `json:"type"`
+	JumpUrl  string        `json:"jump_url"`
+	IconUrl  string        `json:"icon_url"`
+	IconName string        `json:"icon_name"`
+	Rid      string        `json:"rid"`
+	Emoji    *Emoji        `json:"emoji"`
+	Goods    interface{}   `json:"goods"`
+	Style    interface{}   `json:"style"`
+	Pics     []interface{} `json:"pics"`
+	Video    interface{}   `json:"video"`
+}
+
+type Emoji struct {
+	Type      string `json:"type"`
+	Size      int    `json:"size"`
+	Text      string `json:"text"`
+	IconUrl   string `json:"icon_url"`
+	GifUrl    string `json:"gif_url"`
+	WebpUrl   string `json:"webp_url"`
+	JumpUrl   string `json:"jump_url"`
+	JumpTitle string `json:"jump_title"`
+	PackageId string `json:"package_id"`
+	Id        string `json:"id"`
+}
+
+type OpusPic struct {
+	Url     string      `json:"url"`
+	Width   int         `json:"width"`
+	Height  int         `json:"height"`
+	Size    float64     `json:"size"`
+	LiveUrl string      `json:"live_url"`
+	Aigc    int         `json:"aigc"`
+	Warning interface{} `json:"warning"`
 }
 
 // MajorArchive 视频信息

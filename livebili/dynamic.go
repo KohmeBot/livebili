@@ -11,6 +11,7 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"gorm.io/gorm"
+	"image"
 	"io"
 	"strings"
 	"sync"
@@ -45,7 +46,7 @@ func (b *biliPlugin) doCheckDynamic() error {
 
 func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64, atAll bool) error {
 
-	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=%d", uid), string(b.conf.Cookies))
+	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?features=itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard,avatarAutoTheme,sunflowerStyle,cardsEnhance,eva3CardOpus,eva3CardVideo,eva3CardComment,eva3CardUser&host_mid=%d", uid), string(b.conf.Cookies))
 	if err != nil {
 		return err
 	}
@@ -162,6 +163,136 @@ func (b *biliPlugin) sendDynamic(ctx *zero.Ctx, group int64, dynamic *Dynamic, a
 
 }
 
+const (
+	majorTypeOpus         = "MAJOR_TYPE_OPUS"
+	richTextNodeTypeEmoji = "RICH_TEXT_NODE_TYPE_EMOJI"
+)
+
+func (dynamic *DynamicModules) hasOpus() bool {
+	return dynamic.Major.Type == majorTypeOpus ||
+		dynamic.Opus.JumpUrl != "" ||
+		dynamic.Opus.Title != "" ||
+		dynamic.Opus.Summary.Text != "" ||
+		len(dynamic.Opus.Summary.RichTextNodes) > 0 ||
+		len(dynamic.Opus.Pics) > 0
+}
+
+func (dynamic *DynamicModules) dynamicTitle() string {
+	if !dynamic.hasOpus() {
+		return ""
+	}
+	return dynamic.Opus.Title
+}
+
+func (dynamic *DynamicModules) dynamicText() string {
+	if !dynamic.hasOpus() {
+		return dynamic.Desc.Text
+	}
+	if dynamic.Opus.Summary.Text != "" {
+		return dynamic.Opus.Summary.Text
+	}
+
+	var text strings.Builder
+	for _, node := range dynamic.Opus.Summary.RichTextNodes {
+		text.WriteString(richTextNodeText(node))
+	}
+	return text.String()
+}
+
+func (dynamic *DynamicModules) dynamicJumpURL() string {
+	if !dynamic.hasOpus() {
+		return ""
+	}
+	return dynamic.Opus.JumpUrl
+}
+
+func (dynamic *DynamicModules) dynamicImageURLs() []string {
+	if dynamic.hasOpus() && len(dynamic.Opus.Pics) > 0 {
+		urls := make([]string, 0, len(dynamic.Opus.Pics))
+		for _, pic := range dynamic.Opus.Pics {
+			if pic.Url != "" {
+				urls = append(urls, pic.Url)
+			}
+		}
+		return urls
+	}
+
+	urls := make([]string, 0, len(dynamic.Draw.Items))
+	for _, item := range dynamic.Draw.Items {
+		if item.Src != "" {
+			urls = append(urls, item.Src)
+		}
+	}
+	return urls
+}
+
+func (dynamic *DynamicModules) cardRichBody() []CardRichTextNode {
+	if !dynamic.hasOpus() || len(dynamic.Opus.Summary.RichTextNodes) == 0 {
+		return nil
+	}
+	return cardRichTextNodes(dynamic.Opus.Summary.RichTextNodes, request.FetchImage)
+}
+
+func cardRichTextNodes(richTextNodes []RichTextNode, fetchImage func(string) (image.Image, error)) []CardRichTextNode {
+	nodes := make([]CardRichTextNode, 0, len(richTextNodes))
+	for _, node := range richTextNodes {
+		text := richTextNodeText(node)
+		if node.Type != richTextNodeTypeEmoji || node.Emoji == nil || node.Emoji.IconUrl == "" {
+			if text != "" {
+				nodes = append(nodes, CardRichTextNode{Text: text})
+			}
+			continue
+		}
+
+		img, err := fetchImage(absoluteRemoteURL(node.Emoji.IconUrl))
+		if err != nil {
+			logrus.Warnf("获取动态表情失败: %v", err)
+			if text != "" {
+				nodes = append(nodes, CardRichTextNode{Text: text})
+			}
+			continue
+		}
+		dataURI, err := pngImageDataURI(img)
+		if err != nil {
+			logrus.Warnf("编码动态表情失败: %v", err)
+			if text != "" {
+				nodes = append(nodes, CardRichTextNode{Text: text})
+			}
+			continue
+		}
+		nodes = append(nodes, CardRichTextNode{
+			Image:     dataURI,
+			ImageAlt:  text,
+			ImageSize: node.Emoji.Size,
+		})
+	}
+	return nodes
+}
+
+func richTextNodeText(node RichTextNode) string {
+	if node.Text != "" {
+		return node.Text
+	}
+	if node.OrigText != "" {
+		return node.OrigText
+	}
+	if node.Emoji != nil {
+		return node.Emoji.Text
+	}
+	return ""
+}
+
+func absoluteRemoteURL(url string) string {
+	if strings.HasPrefix(url, "//") {
+		return "https:" + url
+	}
+	return url
+}
+
+func messageJumpURL(url string) string {
+	return strings.TrimLeft(url, "//")
+}
+
 // 投稿了视频
 func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) error {
 	userName := dynamic.ModuleAuthor.Name
@@ -216,7 +347,7 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, a
 			message.Text(fmt.Sprintf("%s投稿了视频", pubTime)),
 			message.Text(fmt.Sprintf("【%s】", title)),
 			message.Image(cover),
-			message.Text(strings.TrimLeft(url, "//")),
+			message.Text(messageJumpURL(url)),
 		)
 	} else {
 		msgChain.Split(
@@ -224,7 +355,7 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, a
 			message.Text(fmt.Sprintf("@%s", userName)),
 			message.Text(fmt.Sprintf("%s投稿了视频", pubTime)),
 			message.ImageBytes(imgB),
-			message.Text(strings.TrimLeft(url, "//")),
+			message.Text(messageJumpURL(url)),
 		)
 	}
 
@@ -240,7 +371,9 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, a
 func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
-	text := dynamic.Desc.Text
+	title := dynamic.dynamicTitle()
+	text := dynamic.dynamicText()
+	richBody := dynamic.cardRichBody()
 
 	avatarData := ""
 	if dynamic.ModuleAuthor.Face != "" {
@@ -253,9 +386,10 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 		}
 	}
 
-	gallery := make([]string, 0, len(dynamic.Draw.Items))
-	for _, item := range dynamic.Draw.Items {
-		img, err := request.FetchImage(item.Src)
+	imageURLs := dynamic.dynamicImageURLs()
+	gallery := make([]string, 0, len(imageURLs))
+	for _, imageURL := range imageURLs {
+		img, err := request.FetchImage(absoluteRemoteURL(imageURL))
 		if err != nil {
 			b.env.Error(ctx, err)
 			b.sendDrawFallback(ctx, group, dynamic, atAll)
@@ -271,15 +405,17 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 	}
 
 	imgBytes, err := renderCardImage(CardData{
-		Theme:   "pink",
-		Icon:    "✎",
-		Label:   "发布动态",
-		Avatar:  avatarData,
-		Author:  userName,
-		Meta:    pubTime,
-		Body:    text,
-		Gallery: gallery,
-		Footer:  "哔哩哔哩 · 图文动态",
+		Theme:    "pink",
+		Icon:     "✎",
+		Label:    "发布动态",
+		Avatar:   avatarData,
+		Author:   userName,
+		Meta:     pubTime,
+		Title:    title,
+		Body:     text,
+		RichBody: richBody,
+		Gallery:  gallery,
+		Footer:   "哔哩哔哩 · 图文动态",
 	}, b.conf.ChromeAddr())
 	if err != nil {
 		b.env.Error(ctx, err)
@@ -288,10 +424,14 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 	}
 
 	var msgChain chain.MessageChain
-	msgChain.Split(
+	segments := []message.Segment{
 		message.AtAll(),
 		message.ImageBytes(imgBytes),
-	)
+	}
+	if url := dynamic.dynamicJumpURL(); url != "" {
+		segments = append(segments, message.Text(messageJumpURL(url)))
+	}
+	msgChain.Split(segments...)
 	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}
@@ -301,23 +441,32 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 
 func (b *biliPlugin) sendDrawFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) {
 	var imgMsg []message.Segment
-	for _, item := range dynamic.Draw.Items {
-		imgMsg = append(imgMsg, message.Image(item.Src))
+	for _, imageURL := range dynamic.dynamicImageURLs() {
+		imgMsg = append(imgMsg, message.Image(absoluteRemoteURL(imageURL)))
 	}
 
 	var msgChain chain.MessageChain
-	msgChain.Split(
+	segments := []message.Segment{
 		message.AtAll(),
 		message.Text(fmt.Sprintf("@%s", dynamic.ModuleAuthor.Name)),
 		message.Text(fmt.Sprintf("%s发布了动态", dynamic.ModuleAuthor.PubTime)),
-		message.Text(dynamic.Desc.Text),
-	)
+	}
+	if title := dynamic.dynamicTitle(); title != "" {
+		segments = append(segments, message.Text(fmt.Sprintf("【%s】", title)))
+	}
+	if text := dynamic.dynamicText(); text != "" {
+		segments = append(segments, message.Text(text))
+	}
+	msgChain.Split(segments...)
 	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}
 	if len(imgMsg) > 0 {
 		msgChain.Line()
 		msgChain.Split(imgMsg...)
+	}
+	if url := dynamic.dynamicJumpURL(); url != "" {
+		msgChain.Split(message.Text(messageJumpURL(url)))
 	}
 	ctx.SendGroupMessage(group, msgChain)
 }
@@ -326,7 +475,9 @@ func (b *biliPlugin) sendDrawFallback(ctx *zero.Ctx, group int64, dynamic *Dynam
 func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
-	text := dynamic.Desc.Text
+	title := dynamic.dynamicTitle()
+	text := dynamic.dynamicText()
+	richBody := dynamic.cardRichBody()
 	avatarData := ""
 	if dynamic.ModuleAuthor.Face != "" {
 		ava, err := request.FetchImage(dynamic.ModuleAuthor.Face)
@@ -339,14 +490,16 @@ func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 	}
 
 	imgBytes, err := renderCardImage(CardData{
-		Theme:  "grape",
-		Icon:   "✎",
-		Label:  "发布动态",
-		Avatar: avatarData,
-		Author: userName,
-		Meta:   pubTime,
-		Body:   text,
-		Footer: "哔哩哔哩 · 文字动态",
+		Theme:    "grape",
+		Icon:     "✎",
+		Label:    "发布动态",
+		Avatar:   avatarData,
+		Author:   userName,
+		Meta:     pubTime,
+		Title:    title,
+		Body:     text,
+		RichBody: richBody,
+		Footer:   "哔哩哔哩 · 文字动态",
 	}, b.conf.ChromeAddr())
 	if err != nil {
 		b.env.Error(ctx, err)
@@ -355,10 +508,14 @@ func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 	}
 
 	var msgChain chain.MessageChain
-	msgChain.Split(
+	segments := []message.Segment{
 		message.AtAll(),
 		message.ImageBytes(imgBytes),
-	)
+	}
+	if url := dynamic.dynamicJumpURL(); url != "" {
+		segments = append(segments, message.Text(messageJumpURL(url)))
+	}
+	msgChain.Split(segments...)
 	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}
@@ -368,12 +525,21 @@ func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 
 func (b *biliPlugin) sendWordFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) {
 	var msgChain chain.MessageChain
-	msgChain.Split(
+	segments := []message.Segment{
 		message.AtAll(),
 		message.Text(fmt.Sprintf("@%s", dynamic.ModuleAuthor.Name)),
 		message.Text(fmt.Sprintf("%s发布了动态", dynamic.ModuleAuthor.PubTime)),
-		message.Text(dynamic.Desc.Text),
-	)
+	}
+	if title := dynamic.dynamicTitle(); title != "" {
+		segments = append(segments, message.Text(fmt.Sprintf("【%s】", title)))
+	}
+	if text := dynamic.dynamicText(); text != "" {
+		segments = append(segments, message.Text(text))
+	}
+	if url := dynamic.dynamicJumpURL(); url != "" {
+		segments = append(segments, message.Text(messageJumpURL(url)))
+	}
+	msgChain.Split(segments...)
 	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}

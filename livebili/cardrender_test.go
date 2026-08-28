@@ -60,6 +60,38 @@ func TestRenderCardHTMLKeepsGeneratedDataImages(t *testing.T) {
 	}
 }
 
+func TestRenderCardHTMLRendersRichTextInOrder(t *testing.T) {
+	const imageURL = "data:image/png;base64,iVBORw0KGgo="
+	html, err := renderCardHTML(CardData{
+		Label:  "发布动态",
+		Author: "测试用户",
+		Title:  "有标题的动态",
+		RichBody: []CardRichTextNode{
+			{Text: "表情之前<script>"},
+			{Image: imageURL, ImageAlt: "[测试表情]", ImageSize: 2},
+			{Text: "表情之后"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html, "有标题的动态") {
+		t.Fatal("动态标题没有写入 HTML")
+	}
+	if strings.Contains(html, "<script>") || !strings.Contains(html, "&lt;script&gt;") {
+		t.Fatal("富文本中的普通文本没有经过 HTML 转义")
+	}
+	before := strings.Index(html, "表情之前")
+	emoji := strings.Index(html, imageURL)
+	after := strings.Index(html, "表情之后")
+	if before < 0 || emoji < before || after < emoji {
+		t.Fatal("富文本节点没有按原顺序渲染")
+	}
+	if !strings.Contains(html, "body-emoji-large") {
+		t.Fatal("size=2 的表情没有使用大表情样式")
+	}
+}
+
 func TestChromeAddr(t *testing.T) {
 	tests := map[string]string{
 		"":                        "",
@@ -95,6 +127,7 @@ func TestRenderCardImageWithLocalChrome(t *testing.T) {
 		Label:  "发布动态",
 		Author: "卡片预览用户",
 		Meta:   "刚刚",
+		Title:  "测试测试标题",
 		Body: strings.Repeat(
 			"迁移到 HTML 以后，正文会按照实际内容自动换行并撑高卡片，不会再被硬截断。\n",
 			4,

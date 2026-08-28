@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"image"
 	"image/jpeg"
+	"image/png"
 	"strings"
 	"time"
 
@@ -47,11 +48,21 @@ type CardData struct {
 	Meta           string
 	Title          string
 	Body           string
+	RichBody       []CardRichTextNode
 	Cover          string
 	Gallery        []string
 	StatLabel      string
 	StatValue      string
 	Footer         string
+}
+
+// CardRichTextNode 将正文拆成普通文本和可信的内嵌图片。
+// Text 仍由 html/template 自动转义；Image 只能传入本包生成的 data URL。
+type CardRichTextNode struct {
+	Text      string
+	Image     string
+	ImageAlt  string
+	ImageSize int
 }
 
 func renderCardHTML(data CardData) (string, error) {
@@ -141,6 +152,17 @@ func imageDataURI(img image.Image) (string, error) {
 		return "", fmt.Errorf("编码卡片图片失败: %w", err)
 	}
 	return "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+}
+
+func pngImageDataURI(img image.Image) (string, error) {
+	if img == nil {
+		return "", nil
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return "", fmt.Errorf("编码卡片 PNG 图片失败: %w", err)
+	}
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
 func durationText(since time.Time) string {

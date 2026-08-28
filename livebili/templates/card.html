@@ -29,7 +29,7 @@
     <div class="event-label"><span class="event-icon">{{.Icon}}</span>{{.Label}}</div>
 
     {{if .Title}}<h1 class="title">{{.Title}}</h1>{{end}}
-    {{if .Body}}<div class="body-text">{{.Body}}</div>{{end}}
+    {{if or .Body .RichBody}}<div class="body-text">{{if .RichBody}}{{range .RichBody}}{{if .Image}}<img class="body-emoji{{if gt .ImageSize 1}} body-emoji-large{{end}}" src="{{safeImageURL .Image}}" alt="{{.ImageAlt}}">{{else}}{{.Text}}{{end}}{{end}}{{else}}{{.Body}}{{end}}</div>{{end}}
 
     {{if .Cover}}
     <figure class="cover-wrap">
