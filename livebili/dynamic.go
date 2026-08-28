@@ -24,7 +24,7 @@ func (b *biliPlugin) doCheckDynamic() error {
 	errChan := make(chan error, len(uids))
 	defer close(errChan)
 	for i, uid := range uids {
-		push := b.conf.UIDs[uid]
+		push, _ := b.conf.pushFor(uid)
 		groups := b.groupsFor(push)
 		gopool.Go(func() {
 			errChan <- b.doCheckOneDynamic(uid, groups, push.AtAll)

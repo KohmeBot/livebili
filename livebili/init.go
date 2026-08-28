@@ -20,9 +20,6 @@ func (b *biliPlugin) init() error {
 	if err != nil {
 		return err
 	}
-	if conf.UIDs == nil {
-		conf.UIDs = make(map[int64]PushConfig)
-	}
 	b.conf = conf
 	err = b.initData(db)
 	if err != nil {

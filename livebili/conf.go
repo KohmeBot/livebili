@@ -2,7 +2,6 @@ package livebili
 
 import (
 	"math/rand"
-	"sort"
 	"strings"
 
 	"github.com/kohmebot/plugin/v2/ui"
@@ -10,8 +9,11 @@ import (
 
 // PushConfig 描述一个 B 站用户的全部推送策略。
 type PushConfig struct {
-	// 推送目标群。字段缺省时推送到插件所在的全部群；显式配置 [] 时不推送到任何群。
-	Groups []int64 `yaml:"groups" jsonschema:"description=推送目标群|缺省时推送到全部群|配置为空数组时不推送"`
+	// B 站用户 UID。
+	UID int64 `yaml:"uid" jsonschema:"description=B站用户UID"`
+
+	// 推送目标群。留空时推送到插件所在的全部群。
+	Groups []int64 `yaml:"groups" jsonschema:"description=推送目标群|留空时推送到全部群"`
 
 	// 是否推送粉丝数变化。
 	SendFollower bool `yaml:"send_follower" jsonschema:"description=是否推送粉丝数变化"`
@@ -36,8 +38,8 @@ type PushConfig struct {
 }
 
 type Config struct {
-	// 以 B 站 UID 为键的推送配置。
-	UIDs map[int64]PushConfig `yaml:"uids" jsonschema:"description=以B站UID为键的推送配置"`
+	// 每个 B 站用户的推送配置。
+	Pushes []PushConfig `yaml:"pushes" jsonschema:"description=B站用户推送配置"`
 
 	// 字体文件路径
 	// Deprecated: HTML 卡片使用浏览器字体栈，此字段仅保留旧配置兼容。
@@ -76,20 +78,28 @@ func (c Config) ChromeAddr() string {
 	return "ws://" + addr
 }
 
-// enabledUIDs 返回启用了指定推送类型的 UID，并排序以保证检查顺序稳定。
+// enabledUIDs 按配置顺序返回启用了指定推送类型的 UID。
 func (c Config) enabledUIDs(enabled func(PushConfig) bool) []int64 {
-	uids := make([]int64, 0, len(c.UIDs))
-	for uid, push := range c.UIDs {
+	uids := make([]int64, 0, len(c.Pushes))
+	for _, push := range c.Pushes {
 		if enabled(push) {
-			uids = append(uids, uid)
+			uids = append(uids, push.UID)
 		}
 	}
-	sort.Slice(uids, func(i, j int) bool { return uids[i] < uids[j] })
 	return uids
 }
 
 func (c Config) allUIDs() []int64 {
 	return c.enabledUIDs(func(PushConfig) bool { return true })
+}
+
+func (c Config) pushFor(uid int64) (PushConfig, bool) {
+	for _, push := range c.Pushes {
+		if push.UID == uid {
+			return push, true
+		}
+	}
+	return PushConfig{}, false
 }
 
 func (p PushConfig) randomLiveTip() string {

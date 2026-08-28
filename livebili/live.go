@@ -30,7 +30,7 @@ func (b *biliPlugin) doCheckLive() error {
 	}
 	for _, info := range live.Data {
 		uid := info.Uid
-		push, ok := b.conf.UIDs[uid]
+		push, ok := b.conf.pushFor(uid)
 		if !ok || !push.SendLive {
 			continue
 		}

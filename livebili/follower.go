@@ -21,7 +21,8 @@ func (b *biliPlugin) doCheckFollower() error {
 	errChan := make(chan error, len(uids))
 	defer close(errChan)
 	for i, uid := range uids {
-		groups := b.groupsFor(b.conf.UIDs[uid])
+		push, _ := b.conf.pushFor(uid)
+		groups := b.groupsFor(push)
 		gopool.Go(func() {
 			errChan <- b.doCheckOneFollower(uid, groups)
 		})
