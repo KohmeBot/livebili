@@ -11,27 +11,17 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"gorm.io/gorm"
 	"io"
-	"slices"
 	"time"
 )
 
 func (b *biliPlugin) doCheckFollower() error {
-	var uids []int64
-	for _, uid := range b.conf.Uids {
-		if slices.Contains(b.conf.NoFollowerUids, uid) {
-			continue
-		}
-		uids = append(uids, uid)
-	}
+	uids := b.conf.enabledUIDs(func(push PushConfig) bool {
+		return push.SendFollower
+	})
 	errChan := make(chan error, len(uids))
 	defer close(errChan)
 	for i, uid := range uids {
-		var groups []int64
-		if _, ok := b.conf.GroupUids[uid]; ok {
-			groups = b.conf.GroupUids[uid]
-		} else {
-			groups = slices.Collect(b.groups.RangeGroup())
-		}
+		groups := b.groupsFor(b.conf.UIDs[uid])
 		gopool.Go(func() {
 			errChan <- b.doCheckOneFollower(uid, groups)
 		})

@@ -8,7 +8,6 @@ import (
 	"github.com/kohmebot/livebili/request"
 	"github.com/kohmebot/pkg/chain"
 	"github.com/kohmebot/pkg/gopool"
-	"slices"
 	"time"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -18,9 +17,8 @@ import (
 )
 
 func (b *biliPlugin) doCheckLive() error {
-	uids := slices.Clone(b.conf.Uids)
-	uids = slices.DeleteFunc(uids, func(uid int64) bool {
-		return slices.Contains(b.conf.NoLiveUids, uid)
+	uids := b.conf.enabledUIDs(func(push PushConfig) bool {
+		return push.SendLive
 	})
 	if len(uids) == 0 {
 		return nil
@@ -32,13 +30,11 @@ func (b *biliPlugin) doCheckLive() error {
 	}
 	for _, info := range live.Data {
 		uid := info.Uid
-		var groups []int64
-		if _, ok := b.conf.GroupUids[uid]; ok {
-			groups = b.conf.GroupUids[uid]
-		} else {
-			groups = slices.Collect(b.groups.RangeGroup())
+		push, ok := b.conf.UIDs[uid]
+		if !ok || !push.SendLive {
+			continue
 		}
-		err = b.sendRoomInfo(&info, groups)
+		err = b.sendRoomInfo(&info, b.groupsFor(push), push)
 		if err != nil {
 			return err
 		}
@@ -47,7 +43,7 @@ func (b *biliPlugin) doCheckLive() error {
 
 }
 
-func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
+func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64, push PushConfig) error {
 	db, err := b.env.GetDB()
 	if err != nil {
 		return err
@@ -129,7 +125,7 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 				b.env.Error(ctx, renderErr)
 				msgChain.Split(
 					message.AtAll(),
-					message.Text(b.conf.randChoseLiveTips()),
+					message.Text(push.randomLiveTip()),
 					message.Text(fmt.Sprintf("@%s 正在直播：%s", info.Uname, info.Title)),
 					message.Image(info.CoverFromUser),
 					message.Text(fmt.Sprintf("https://live.bilibili.com/%d", info.RoomId)),
@@ -137,12 +133,12 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 			} else {
 				msgChain.Split(
 					message.AtAll(),
-					message.Text(b.conf.randChoseLiveTips()),
+					message.Text(push.randomLiveTip()),
 					message.ImageBytes(imgB),
 					message.Text(fmt.Sprintf("https://live.bilibili.com/%d", info.RoomId)),
 				)
 			}
-			if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+			if b.gn8Iv.IsNowDND() || !push.AtAll {
 				// 免打扰状态下去除at全员
 				DeleteAtAll(&msgChain)
 			}
@@ -154,8 +150,8 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64) error {
 		})
 		return nil
 	}
-	if !living && b.conf.SendOff {
-		tip := b.conf.randChoseOffTips()
+	if !living && push.SendOff {
+		tip := push.randomOffTip()
 		imgB, renderErr := renderCardImage(CardData{
 			Theme:     "sky",
 			Icon:      "☾",

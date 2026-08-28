@@ -12,31 +12,22 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"gorm.io/gorm"
 	"io"
-	"slices"
 	"strings"
 	"sync"
 	"time"
 )
 
 func (b *biliPlugin) doCheckDynamic() error {
-	var uids []int64
-	for _, uid := range b.conf.Uids {
-		if slices.Contains(b.conf.NoDynamicUids, uid) {
-			continue
-		}
-		uids = append(uids, uid)
-	}
+	uids := b.conf.enabledUIDs(func(push PushConfig) bool {
+		return push.SendDynamic
+	})
 	errChan := make(chan error, len(uids))
 	defer close(errChan)
 	for i, uid := range uids {
-		var groups []int64
-		if _, ok := b.conf.GroupUids[uid]; ok {
-			groups = b.conf.GroupUids[uid]
-		} else {
-			groups = slices.Collect(b.groups.RangeGroup())
-		}
+		push := b.conf.UIDs[uid]
+		groups := b.groupsFor(push)
 		gopool.Go(func() {
-			errChan <- b.doCheckOneDynamic(uid, groups)
+			errChan <- b.doCheckOneDynamic(uid, groups, push.AtAll)
 		})
 		if i < len(uids)-1 {
 			time.Sleep(time.Duration(b.conf.CheckDuration) * time.Second)
@@ -52,7 +43,7 @@ func (b *biliPlugin) doCheckDynamic() error {
 	return err
 }
 
-func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64) error {
+func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64, atAll bool) error {
 
 	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=%d", uid), string(b.conf.Cookies))
 	if err != nil {
@@ -91,7 +82,7 @@ func (b *biliPlugin) doCheckOneDynamic(uid int64, groups []int64) error {
 			gopool.Go(func() {
 				defer wg.Done()
 				for _, update := range updates {
-					b.sendDynamic(ctx, group, &update)
+					b.sendDynamic(ctx, group, &update, atAll)
 					// 发送每个动态间等2s
 					time.Sleep(2 * time.Second)
 				}
@@ -152,15 +143,15 @@ func (b *biliPlugin) updateDynamic(uid int64, dynamic *DynamicResp) (updates []D
 
 }
 
-func (b *biliPlugin) sendDynamic(ctx *zero.Ctx, group int64, dynamic *Dynamic) {
+func (b *biliPlugin) sendDynamic(ctx *zero.Ctx, group int64, dynamic *Dynamic, atAll bool) {
 	var err error
 	switch dynamic.Type {
 	case "DYNAMIC_TYPE_AV":
-		err = b.onAv(ctx, group, &dynamic.Modules)
+		err = b.onAv(ctx, group, &dynamic.Modules, atAll)
 	case "DYNAMIC_TYPE_DRAW":
-		err = b.onDraw(ctx, group, &dynamic.Modules)
+		err = b.onDraw(ctx, group, &dynamic.Modules, atAll)
 	case "DYNAMIC_TYPE_WORD":
-		err = b.onWord(ctx, group, &dynamic.Modules)
+		err = b.onWord(ctx, group, &dynamic.Modules, atAll)
 	default:
 		logrus.Warnf("unknown dynamic type: %s", dynamic.Type)
 	}
@@ -172,7 +163,7 @@ func (b *biliPlugin) sendDynamic(ctx *zero.Ctx, group int64, dynamic *Dynamic) {
 }
 
 // 投稿了视频
-func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) error {
+func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
 	face := dynamic.ModuleAuthor.Face
@@ -237,7 +228,7 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) e
 		)
 	}
 
-	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+	if b.gn8Iv.IsNowDND() || !atAll {
 		// 免打扰状态下去除at全员
 		DeleteAtAll(&msgChain)
 	}
@@ -246,7 +237,7 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules) e
 }
 
 // 带图动态
-func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules) error {
+func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
 	text := dynamic.Desc.Text
@@ -267,13 +258,13 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 		img, err := request.FetchImage(item.Src)
 		if err != nil {
 			b.env.Error(ctx, err)
-			b.sendDrawFallback(ctx, group, dynamic)
+			b.sendDrawFallback(ctx, group, dynamic, atAll)
 			return nil
 		}
 		dataURI, err := imageDataURI(img)
 		if err != nil {
 			b.env.Error(ctx, err)
-			b.sendDrawFallback(ctx, group, dynamic)
+			b.sendDrawFallback(ctx, group, dynamic, atAll)
 			return nil
 		}
 		gallery = append(gallery, dataURI)
@@ -292,7 +283,7 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 	}, b.conf.ChromeAddr())
 	if err != nil {
 		b.env.Error(ctx, err)
-		b.sendDrawFallback(ctx, group, dynamic)
+		b.sendDrawFallback(ctx, group, dynamic, atAll)
 		return nil
 	}
 
@@ -301,14 +292,14 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 		message.AtAll(),
 		message.ImageBytes(imgBytes),
 	)
-	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}
 	ctx.SendGroupMessage(group, msgChain)
 	return nil
 }
 
-func (b *biliPlugin) sendDrawFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
+func (b *biliPlugin) sendDrawFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) {
 	var imgMsg []message.Segment
 	for _, item := range dynamic.Draw.Items {
 		imgMsg = append(imgMsg, message.Image(item.Src))
@@ -321,7 +312,7 @@ func (b *biliPlugin) sendDrawFallback(ctx *zero.Ctx, group int64, dynamic *Dynam
 		message.Text(fmt.Sprintf("%s发布了动态", dynamic.ModuleAuthor.PubTime)),
 		message.Text(dynamic.Desc.Text),
 	)
-	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}
 	if len(imgMsg) > 0 {
@@ -332,7 +323,7 @@ func (b *biliPlugin) sendDrawFallback(ctx *zero.Ctx, group int64, dynamic *Dynam
 }
 
 // 纯文字动态
-func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules) error {
+func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) error {
 	userName := dynamic.ModuleAuthor.Name
 	pubTime := dynamic.ModuleAuthor.PubTime
 	text := dynamic.Desc.Text
@@ -359,7 +350,7 @@ func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 	}, b.conf.ChromeAddr())
 	if err != nil {
 		b.env.Error(ctx, err)
-		b.sendWordFallback(ctx, group, dynamic)
+		b.sendWordFallback(ctx, group, dynamic, atAll)
 		return nil
 	}
 
@@ -368,14 +359,14 @@ func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules)
 		message.AtAll(),
 		message.ImageBytes(imgBytes),
 	)
-	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}
 	ctx.SendGroupMessage(group, msgChain)
 	return nil
 }
 
-func (b *biliPlugin) sendWordFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules) {
+func (b *biliPlugin) sendWordFallback(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) {
 	var msgChain chain.MessageChain
 	msgChain.Split(
 		message.AtAll(),
@@ -383,7 +374,7 @@ func (b *biliPlugin) sendWordFallback(ctx *zero.Ctx, group int64, dynamic *Dynam
 		message.Text(fmt.Sprintf("%s发布了动态", dynamic.ModuleAuthor.PubTime)),
 		message.Text(dynamic.Desc.Text),
 	)
-	if b.gn8Iv.IsNowDND() || !b.conf.AtAll {
+	if b.gn8Iv.IsNowDND() || !atAll {
 		DeleteAtAll(&msgChain)
 	}
 	ctx.SendGroupMessage(group, msgChain)

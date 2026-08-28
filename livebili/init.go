@@ -20,8 +20,8 @@ func (b *biliPlugin) init() error {
 	if err != nil {
 		return err
 	}
-	if conf.GroupUids == nil {
-		conf.GroupUids = make(map[int64][]int64)
+	if conf.UIDs == nil {
+		conf.UIDs = make(map[int64]PushConfig)
 	}
 	b.conf = conf
 	err = b.initData(db)
@@ -40,7 +40,7 @@ func (b *biliPlugin) initData(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	for _, uid := range b.conf.Uids {
+	for _, uid := range b.conf.allUIDs() {
 		record := &LiveRecord{Uid: uid}
 		if err := db.Where("uid = ?", uid).First(record).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {

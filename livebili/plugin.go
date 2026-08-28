@@ -5,6 +5,7 @@ import (
 	"github.com/kohmebot/plugin/v2"
 	"github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"slices"
 )
 
 type biliPlugin struct {
@@ -13,6 +14,13 @@ type biliPlugin struct {
 	groups plugin.Groups
 	conf   Config
 	gn8Iv  *gn8
+}
+
+func (b *biliPlugin) groupsFor(push PushConfig) []int64 {
+	if push.Groups != nil {
+		return slices.Clone(push.Groups)
+	}
+	return slices.Collect(b.groups.RangeGroup())
 }
 
 func NewPlugin() plugin.Plugin {
@@ -44,7 +52,7 @@ func (b *biliPlugin) Name() string {
 }
 
 func (b *biliPlugin) Version() string {
-	return "v0.2.0"
+	return "v0.2.1"
 }
 
 func (b *biliPlugin) OnBoot() {
