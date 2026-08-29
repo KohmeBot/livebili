@@ -4,6 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"io"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/kohmebot/livebili/request"
 	"github.com/kohmebot/pkg/chain"
 	"github.com/kohmebot/pkg/gopool"
@@ -11,11 +17,6 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"gorm.io/gorm"
-	"image"
-	"io"
-	"strings"
-	"sync"
-	"time"
 )
 
 func (b *biliPlugin) doCheckDynamic() error {
@@ -335,7 +336,7 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, a
 		Cover:     coverData,
 		StatLabel: "视频时长",
 		StatValue: duration,
-		Footer:    "哔哩哔哩 · 视频更新",
+		Footer:    "视频更新",
 	}, b.conf.ChromeAddr())
 
 	if err != nil {
@@ -415,7 +416,7 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 		Body:     text,
 		RichBody: richBody,
 		Gallery:  gallery,
-		Footer:   "哔哩哔哩 · 图文动态",
+		Footer:   "动态",
 	}, b.conf.ChromeAddr())
 	if err != nil {
 		b.env.Error(ctx, err)
@@ -499,7 +500,7 @@ func (b *biliPlugin) onWord(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 		Title:    title,
 		Body:     text,
 		RichBody: richBody,
-		Footer:   "哔哩哔哩 · 文字动态",
+		Footer:   "动态",
 	}, b.conf.ChromeAddr())
 	if err != nil {
 		b.env.Error(ctx, err)

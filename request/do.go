@@ -5,6 +5,15 @@ import (
 	"image"
 	"io"
 	"net/http"
+
+	// image.Decode only recognizes formats whose decoder packages are registered.
+	// Keep all formats accepted by FetchImage explicit in this package.
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/webp"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 )
 
 func setHeader(req *http.Request, cookies string) {
@@ -42,7 +51,7 @@ func FetchImage(url string) (image.Image, error) {
 	// 发送 GET 请求
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch image: %v", err)
+		return nil, fmt.Errorf("failed to fetch image: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -54,7 +63,7 @@ func FetchImage(url string) (image.Image, error) {
 	// 读取并解码图像数据
 	img, _, err := image.Decode(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %v", err)
+		return nil, fmt.Errorf("failed to decode image (content type %q): %w", resp.Header.Get("Content-Type"), err)
 	}
 
 	return img, nil

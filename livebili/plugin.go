@@ -1,11 +1,12 @@
 package livebili
 
 import (
+	"slices"
+
 	"github.com/kohmebot/gn8/gn8sdk"
 	"github.com/kohmebot/plugin/v2"
 	"github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
-	"slices"
 )
 
 type biliPlugin struct {
@@ -52,7 +53,7 @@ func (b *biliPlugin) Name() string {
 }
 
 func (b *biliPlugin) Version() string {
-	return "v0.2.3"
+	return "v0.2.4"
 }
 
 func (b *biliPlugin) OnBoot() {

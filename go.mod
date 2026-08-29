@@ -13,6 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
 	github.com/wdvxdr1123/ZeroBot v1.8.1
+	golang.org/x/image v0.21.0
 	gorm.io/gorm v1.25.12
 )
 
@@ -37,7 +38,6 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
-	golang.org/x/image v0.21.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
