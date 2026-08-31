@@ -1,7 +1,9 @@
 package livebili
 
 import (
+	"math/rand/v2"
 	"slices"
+	"time"
 
 	"github.com/kohmebot/gn8/gn8sdk"
 	"github.com/kohmebot/plugin/v2"
@@ -53,9 +55,14 @@ func (b *biliPlugin) Name() string {
 }
 
 func (b *biliPlugin) Version() string {
-	return "v0.2.4"
+	return "v0.2.5"
 }
 
 func (b *biliPlugin) OnBoot() {
 
+}
+
+func RandSecond(sec int) time.Duration {
+	mill := rand.Int64N(int64(sec) * 1000)
+	return time.Duration(mill) * time.Millisecond
 }

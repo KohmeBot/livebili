@@ -117,7 +117,7 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64, push PushConfi
 			Cover:     coverData,
 			StatLabel: "距离上次直播",
 			StatValue: durationText(record.LastOffTime),
-			Footer:    "哔哩哔哩 · 直播提醒",
+			Footer:    "直播提醒",
 		}, b.conf.ChromeAddr())
 		b.env.UseBot(func(ctx *zero.Ctx) {
 			var msgChain chain.MessageChain
@@ -163,7 +163,7 @@ func (b *biliPlugin) sendRoomInfo(info *RoomInfo, groups []int64, push PushConfi
 			Body:      tip,
 			StatLabel: "本次直播时长",
 			StatValue: durationText(record.LastLiveTime),
-			Footer:    "哔哩哔哩 · 下播提醒",
+			Footer:    "下播提醒",
 		}, b.conf.ChromeAddr())
 		b.env.UseBot(func(ctx *zero.Ctx) {
 			var msgChain chain.MessageChain

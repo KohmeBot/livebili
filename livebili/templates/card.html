@@ -38,9 +38,12 @@
     </figure>
     {{end}}
 
-    {{if .Gallery}}
-    <div class="gallery gallery-{{len .Gallery}}">
+    {{if or .Gallery .GalleryItems}}
+    {{if .GalleryItems}}<div class="gallery gallery-{{len .GalleryItems}}">
+      {{range .GalleryItems}}<img{{if .Contain}} class="gallery-image-contain"{{end}} src="{{safeImageURL .Source}}" alt="">{{end}}
+    {{else}}<div class="gallery gallery-{{len .Gallery}}">
       {{range .Gallery}}<img src="{{safeImageURL .}}" alt="">{{end}}
+    {{end}}
     </div>
     {{end}}
 

@@ -51,9 +51,31 @@ type CardData struct {
 	RichBody       []CardRichTextNode
 	Cover          string
 	Gallery        []string
+	GalleryItems   []CardGalleryImage
 	StatLabel      string
 	StatValue      string
 	Footer         string
+}
+
+// CardGalleryImage 为需要保护完整构图的极宽或极长图片提供无裁切渲染标记。
+// Gallery 字段继续保留，以兼容已有调用方。
+type CardGalleryImage struct {
+	Source  string
+	Contain bool
+}
+
+func newCardGalleryImage(source string, img image.Image) CardGalleryImage {
+	item := CardGalleryImage{Source: source}
+	if img == nil {
+		return item
+	}
+	bounds := img.Bounds()
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		return item
+	}
+	aspectRatio := float64(bounds.Dx()) / float64(bounds.Dy())
+	item.Contain = aspectRatio > 1.8 || aspectRatio < 1/1.8
+	return item
 }
 
 // CardRichTextNode 将正文拆成普通文本和可信的内嵌图片。
@@ -70,7 +92,7 @@ func renderCardHTML(data CardData) (string, error) {
 		data.Theme = "coral"
 	}
 	if strings.TrimSpace(data.Footer) == "" {
-		data.Footer = "哔哩哔哩 · 动态通知"
+		data.Footer = "动态通知"
 	}
 	if strings.TrimSpace(data.AvatarFallback) == "" {
 		data.AvatarFallback = firstTextRune(data.Author)

@@ -32,7 +32,9 @@ func (b *biliPlugin) doCheckDynamic() error {
 			errChan <- b.doCheckOneDynamic(uid, groups, push.AtAll)
 		})
 		if i < len(uids)-1 {
-			time.Sleep(time.Duration(b.conf.CheckDuration) * time.Second)
+			sDur := time.Duration(b.conf.CheckDuration) * time.Second
+			sDur += RandSecond(6)
+			time.Sleep(sDur)
 		}
 	}
 	var err error
@@ -388,7 +390,7 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 	}
 
 	imageURLs := dynamic.dynamicImageURLs()
-	gallery := make([]string, 0, len(imageURLs))
+	gallery := make([]CardGalleryImage, 0, len(imageURLs))
 	for _, imageURL := range imageURLs {
 		img, err := request.FetchImage(absoluteRemoteURL(imageURL))
 		if err != nil {
@@ -402,21 +404,21 @@ func (b *biliPlugin) onDraw(ctx *zero.Ctx, group int64, dynamic *DynamicModules,
 			b.sendDrawFallback(ctx, group, dynamic, atAll)
 			return nil
 		}
-		gallery = append(gallery, dataURI)
+		gallery = append(gallery, newCardGalleryImage(dataURI, img))
 	}
 
 	imgBytes, err := renderCardImage(CardData{
-		Theme:    "pink",
-		Icon:     "✎",
-		Label:    "发布动态",
-		Avatar:   avatarData,
-		Author:   userName,
-		Meta:     pubTime,
-		Title:    title,
-		Body:     text,
-		RichBody: richBody,
-		Gallery:  gallery,
-		Footer:   "动态",
+		Theme:        "pink",
+		Icon:         "✎",
+		Label:        "发布动态",
+		Avatar:       avatarData,
+		Author:       userName,
+		Meta:         pubTime,
+		Title:        title,
+		Body:         text,
+		RichBody:     richBody,
+		GalleryItems: gallery,
+		Footer:       "动态",
 	}, b.conf.ChromeAddr())
 	if err != nil {
 		b.env.Error(ctx, err)

@@ -60,6 +60,27 @@ func TestRenderCardHTMLKeepsGeneratedDataImages(t *testing.T) {
 	}
 }
 
+func TestRenderCardHTMLProtectsExtremeGalleryAspectRatio(t *testing.T) {
+	const imageURL = "data:image/png;base64,iVBORw0KGgo="
+	item := newCardGalleryImage(imageURL, image.NewRGBA(image.Rect(0, 0, 2000, 500)))
+	if !item.Contain {
+		t.Fatal("极宽图片应使用完整显示模式")
+	}
+
+	html, err := renderCardHTML(CardData{
+		Theme:        "pink",
+		Label:        "发布动态",
+		Author:       "测试用户",
+		GalleryItems: []CardGalleryImage{item},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html, `class="gallery-image-contain"`) || !strings.Contains(html, imageURL) {
+		t.Fatal("极端宽高比图片没有使用无裁切样式")
+	}
+}
+
 func TestRenderCardHTMLRendersRichTextInOrder(t *testing.T) {
 	const imageURL = "data:image/png;base64,iVBORw0KGgo="
 	html, err := renderCardHTML(CardData{

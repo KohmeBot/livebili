@@ -27,7 +27,9 @@ func (b *biliPlugin) doCheckFollower() error {
 			errChan <- b.doCheckOneFollower(uid, groups)
 		})
 		if i < len(uids)-1 {
-			time.Sleep(time.Duration(b.conf.CheckDuration) * time.Second)
+			sDur := time.Duration(b.conf.CheckDuration) * time.Second
+			sDur += RandSecond(10)
+			time.Sleep(sDur)
 		}
 	}
 	var err error
@@ -210,7 +212,7 @@ func (b *biliPlugin) onFollowerChange(follower int, record *FollowerRecord, nick
 		Author:    nickName,
 		StatLabel: "当前粉丝数",
 		StatValue: fmt.Sprintf("%d", follower),
-		Footer:    "哔哩哔哩 · 粉丝变化",
+		Footer:    "粉丝变化",
 	}
 	if delta > 0 {
 		data.Theme = "mint"

@@ -69,7 +69,7 @@ func (b *biliPlugin) tickerLive() {
 			err = fmt.Errorf("check live error: %w", err)
 			logrus.Error(err.Error())
 		}
-		t.Reset(dur)
+		t.Reset(dur + RandSecond(6))
 		s.Error(err)
 	}
 
@@ -86,7 +86,7 @@ func (b *biliPlugin) tickerDynamic() {
 			err = fmt.Errorf("check dynamic error: %w", err)
 			logrus.Error(err.Error())
 		}
-		t.Reset(dur)
+		t.Reset(dur + RandSecond(10))
 		s.Error(err)
 	}
 }
@@ -102,7 +102,7 @@ func (b *biliPlugin) tickerFollower() {
 			err = fmt.Errorf("check follower error: %w", err)
 			logrus.Error(err.Error())
 		}
-		t.Reset(dur)
+		t.Reset(dur + RandSecond(10))
 		s.Error(err)
 	}
 }
