@@ -36,7 +36,7 @@ var cardTemplate = template.Must(
 )
 
 // CardData 是所有 B 站通知卡片共用的视图模型。空字段不会占据布局空间。
-// Body 由 CSS 保留换行并自然撑高卡片，不做字符数截断。
+// Body 和 Description 由 CSS 保留换行并自然撑高卡片，不做字符数截断。
 type CardData struct {
 	Theme          string
 	Icon           string
@@ -48,6 +48,7 @@ type CardData struct {
 	Meta           string
 	Title          string
 	Body           string
+	Description    string
 	RichBody       []CardRichTextNode
 	Cover          string
 	Gallery        []string
@@ -88,6 +89,7 @@ type CardRichTextNode struct {
 }
 
 func renderCardHTML(data CardData) (string, error) {
+	data.Description = strings.TrimSpace(data.Description)
 	if strings.TrimSpace(data.Theme) == "" {
 		data.Theme = "coral"
 	}

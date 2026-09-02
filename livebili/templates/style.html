@@ -185,6 +185,51 @@ body {
   font-size: 10px; font-weight: 900; transform: rotate(-5deg);
 }
 
+.description-note {
+  position: relative;
+  margin: 17px 2px 14px;
+  padding: 17px 14px 13px;
+  color: #5d4d42;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.72), transparent 68%),
+    var(--accent-soft);
+  border: 2px solid rgba(73,57,47,.72);
+  border-radius: 8px 17px 14px 15px;
+  box-shadow: 2px 3px 0 rgba(73,57,47,.11);
+  transform: rotate(.15deg);
+}
+.description-note::after {
+  content: "";
+  position: absolute;
+  right: 13px; top: -5px;
+  width: 42px; height: 9px;
+  background: rgba(255,255,255,.66);
+  border: 1px solid rgba(73,57,47,.12);
+  transform: rotate(4deg);
+}
+.description-label {
+  position: absolute;
+  left: 12px; top: -12px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px 4px;
+  color: #fffdf7; background: var(--accent-deep);
+  border: 2px solid var(--ink); border-radius: 9px 9px 9px 3px;
+  box-shadow: 1px 2px 0 rgba(73,57,47,.14);
+  font-size: 11px; line-height: 1; font-weight: 900;
+  letter-spacing: .08em;
+  transform: rotate(-1.5deg);
+}
+.description-label span {
+  color: var(--yellow);
+  font-size: 16px; line-height: .7;
+}
+.description-text {
+  font-size: 13px; line-height: 1.72; font-weight: 600;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 4px 0 14px; }
 .gallery img {
   display: block; width: 100%; aspect-ratio: 1;

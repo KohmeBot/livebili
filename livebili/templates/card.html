@@ -38,6 +38,13 @@
     </figure>
     {{end}}
 
+    {{if .Description}}
+    <section class="description-note">
+      <div class="description-label"><span>〝</span>视频简介</div>
+      <div class="description-text">{{.Description}}</div>
+    </section>
+    {{end}}
+
     {{if or .Gallery .GalleryItems}}
     {{if .GalleryItems}}<div class="gallery gallery-{{len .GalleryItems}}">
       {{range .GalleryItems}}<img{{if .Contain}} class="gallery-image-contain"{{end}} src="{{safeImageURL .Source}}" alt="">{{end}}

@@ -113,6 +113,46 @@ func TestRenderCardHTMLRendersRichTextInOrder(t *testing.T) {
 	}
 }
 
+func TestRenderCardHTMLRendersVideoDescriptionBelowCover(t *testing.T) {
+	const imageURL = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+	html, err := renderCardHTML(CardData{
+		Label:       "视频投稿",
+		Author:      "测试用户",
+		Title:       "视频标题",
+		Cover:       imageURL,
+		Description: "第一行简介\n第二行<script>",
+		StatLabel:   "视频时长",
+		StatValue:   "03:24",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(html, "<script>") || !strings.Contains(html, "第二行&lt;script&gt;") {
+		t.Fatal("视频简介没有经过 HTML 转义")
+	}
+	cover := strings.Index(html, `class="cover-wrap"`)
+	description := strings.Index(html, `class="description-note"`)
+	stat := strings.Index(html, `class="stat-note"`)
+	if cover < 0 || description < cover || stat < description {
+		t.Fatal("视频简介应位于封面之后、视频时长之前")
+	}
+}
+
+func TestRenderCardHTMLOmitsEmptyVideoDescription(t *testing.T) {
+	html, err := renderCardHTML(CardData{
+		Label:       "视频投稿",
+		Author:      "测试用户",
+		Cover:       "data:image/jpeg;base64,/9j/4AAQSkZJRg==",
+		Description: " \n\t ",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(html, `<section class="description-note">`) || strings.Contains(html, "视频简介") {
+		t.Fatal("空视频简介不应占据卡片布局")
+	}
+}
+
 func TestChromeAddr(t *testing.T) {
 	tests := map[string]string{
 		"":                        "",
@@ -143,7 +183,7 @@ func TestRenderCardImageWithLocalChrome(t *testing.T) {
 	}
 
 	imgBytes, err := renderCardImage(CardData{
-		Theme:  "pink",
+		Theme:  "coral",
 		Icon:   "✎",
 		Label:  "发布动态",
 		Author: "卡片预览用户",
@@ -158,7 +198,8 @@ func TestRenderCardImageWithLocalChrome(t *testing.T) {
 			makeImage(color.RGBA{R: 115, G: 189, B: 232, A: 255}),
 			makeImage(color.RGBA{R: 95, G: 201, B: 160, A: 255}),
 		},
-		Footer: "哔哩哔哩 · 图文动态",
+		Footer:      "哔哩哔哩 · 图文动态",
+		Description: "testtstesatt\n测secess",
 	}, "")
 	if err != nil {
 		t.Fatal(err)

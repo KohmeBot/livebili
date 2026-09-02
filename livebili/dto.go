@@ -232,3 +232,16 @@ type RelationData struct {
 	// 粉丝数
 	Follower int `json:"follower"`
 }
+
+type AvDetailResp struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		Desc   string `json:"desc"`
+		DescV2 []struct {
+			RawText string `json:"raw_text"`
+			Type    int    `json:"type"`
+			BizId   int    `json:"biz_id"`
+		} `json:"desc_v2"`
+	} `json:"data"`
+}

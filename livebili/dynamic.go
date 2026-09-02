@@ -296,6 +296,40 @@ func messageJumpURL(url string) string {
 	return strings.TrimLeft(url, "//")
 }
 
+// 获取视频简介
+func (b *biliPlugin) getAvDesc(bv string) (string, error) {
+	resp, err := request.DoGet(fmt.Sprintf("https://api.bilibili.com/x/web-interface/view?bvid=%s", bv), string(b.conf.Cookies))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	buf, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var rsp AvDetailResp
+	err = json.Unmarshal(buf, &rsp)
+	if err != nil {
+		return "", err
+	}
+	if rsp.Code != 0 {
+		return "", fmt.Errorf("code: %d,msg: %s", rsp.Code, rsp.Message)
+	}
+
+	var desc string
+	for _, data := range rsp.Data.DescV2 {
+		if data.RawText != "" {
+			desc = data.RawText
+			break
+		}
+	}
+	if desc == "" {
+		desc = rsp.Data.Desc
+	}
+	return desc, nil
+
+}
+
 // 投稿了视频
 func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, atAll bool) error {
 	userName := dynamic.ModuleAuthor.Name
@@ -316,6 +350,11 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, a
 	if err != nil {
 		return err
 	}
+	desc, err := b.getAvDesc(bv)
+	if err != nil {
+		// 只报错，不阻碍下面的逻辑
+		b.env.Error(ctx, err)
+	}
 
 	var msgChain chain.MessageChain
 	avatarData, err := imageDataURI(ava)
@@ -327,18 +366,19 @@ func (b *biliPlugin) onAv(ctx *zero.Ctx, group int64, dynamic *DynamicModules, a
 		return err
 	}
 	imgB, err := renderCardImage(CardData{
-		Theme:     "coral",
-		Icon:      "▶",
-		Label:     "视频投稿",
-		Badge:     bv,
-		Avatar:    avatarData,
-		Author:    userName,
-		Meta:      fmt.Sprintf("%s投稿了视频", pubTime),
-		Title:     title,
-		Cover:     coverData,
-		StatLabel: "视频时长",
-		StatValue: duration,
-		Footer:    "视频更新",
+		Theme:       "coral",
+		Icon:        "▶",
+		Label:       "视频投稿",
+		Badge:       bv,
+		Avatar:      avatarData,
+		Author:      userName,
+		Meta:        fmt.Sprintf("%s投稿了视频", pubTime),
+		Title:       title,
+		Cover:       coverData,
+		Description: desc,
+		StatLabel:   "视频时长",
+		StatValue:   duration,
+		Footer:      "视频更新",
 	}, b.conf.ChromeAddr())
 
 	if err != nil {
