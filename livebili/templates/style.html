@@ -123,7 +123,7 @@ body {
   display: inline-flex; align-items: center;
   margin: 17px 0 11px; padding: 6px 13px 7px;
   color: #fffdf7; background: var(--accent);
-  border: 2.5px solid var(--ink); border-radius: 14px 14px 14px 5px;
+  border: 2.5px solid var(--ink); border-radius: var(--inner-radius);
   box-shadow: 2px 3px 0 rgba(73,57,47,.18);
   font-size: 14px; font-weight: 900; letter-spacing: .08em;
   transform: rotate(-1.5deg);
@@ -145,7 +145,7 @@ body {
   padding: 12px 13px;
   color: #5d4d42; background: #fff8e9;
   border-left: 5px solid var(--secondary);
-  border-radius: 5px 15px 15px 5px;
+  border-radius: var(--inner-radius);
   font-size: 15px; line-height: 1.75; font-weight: 600;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -155,7 +155,7 @@ body {
   padding: 9px 11px;
   background: rgba(255, 248, 233, .56);
   border-left-width: 4px;
-  border-radius: 6px var(--inner-radius) var(--inner-radius) 6px;
+  border-radius: var(--inner-radius);
   line-height: 1.65;
   font-weight: 500;
 }
@@ -174,7 +174,7 @@ body {
 .cover-wrap { position: relative; margin: 5px 0 13px; }
 .cover {
   display: block; width: 100%; aspect-ratio: 16 / 9;
-  border: 3px solid var(--ink); border-radius: 17px 13px 19px 12px;
+  border: 3px solid var(--ink); border-radius: var(--inner-radius);
   object-fit: cover; background: var(--accent-soft);
   box-shadow: 3px 4px 0 rgba(73,57,47,.13);
 }
@@ -187,44 +187,49 @@ body {
 
 .description-note {
   position: relative;
-  margin: 17px 2px 14px;
-  padding: 17px 14px 13px;
+  margin: 20px 0 16px;
+  padding: 14px 15px 15px 21px;
   color: #5d4d42;
-  background:
-    linear-gradient(135deg, rgba(255,255,255,.72), transparent 68%),
-    var(--accent-soft);
-  border: 2px solid rgba(73,57,47,.72);
-  border-radius: 8px 17px 14px 15px;
-  box-shadow: 2px 3px 0 rgba(73,57,47,.11);
-  transform: rotate(.15deg);
+  background: var(--grain), #fff8e9;
+  background-blend-mode: multiply;
+  border: 2px solid var(--ink);
+  border-radius: var(--inner-radius);
+  box-shadow: 3px 4px 0 rgba(73,57,47,.13);
+}
+.description-note::before {
+  content: "";
+  position: absolute;
+  left: 10px; top: 12px; bottom: 12px;
+  width: 2px;
+  background: var(--accent-soft);
+  border-radius: 2px;
 }
 .description-note::after {
   content: "";
   position: absolute;
-  right: 13px; top: -5px;
-  width: 42px; height: 9px;
-  background: rgba(255,255,255,.66);
-  border: 1px solid rgba(73,57,47,.12);
-  transform: rotate(4deg);
+  right: 20px; top: -7px;
+  width: 48px; height: 14px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.42) 0 5px, transparent 5px 10px),
+    var(--yellow);
+  opacity: .82;
+  box-shadow: 0 2px 2px rgba(73,57,47,.12);
+  transform: rotate(5deg);
 }
 .description-label {
-  position: absolute;
-  left: 12px; top: -12px;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px 4px;
-  color: #fffdf7; background: var(--accent-deep);
-  border: 2px solid var(--ink); border-radius: 9px 9px 9px 3px;
-  box-shadow: 1px 2px 0 rgba(73,57,47,.14);
-  font-size: 11px; line-height: 1; font-weight: 900;
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-bottom: 9px;
+  color: var(--ink);
+  background: linear-gradient(transparent 65%, var(--yellow) 65%, var(--yellow) 92%, transparent 92%);
+  font-size: 12px; line-height: 1.5; font-weight: 900;
   letter-spacing: .08em;
-  transform: rotate(-1.5deg);
 }
 .description-label span {
-  color: var(--yellow);
-  font-size: 16px; line-height: .7;
+  color: var(--accent-deep);
+  font-size: 15px; line-height: 1;
 }
 .description-text {
-  font-size: 13px; line-height: 1.72; font-weight: 600;
+  font-size: 13px; line-height: 1.8; font-weight: 500;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -248,9 +253,8 @@ body {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   margin: 12px 0 4px; padding: 9px 12px;
   color: #816c5d; background: var(--accent-soft);
-  border: 2px dashed var(--accent-deep); border-radius: 12px;
+  border: 2px dashed var(--accent-deep); border-radius: var(--inner-radius);
   font-size: 12px; font-weight: 800;
-  transform: rotate(-.4deg);
 }
 .stat-note strong { color: var(--accent-deep); font-size: 17px; text-align: right; overflow-wrap: anywhere; }
 
